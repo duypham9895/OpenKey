@@ -163,3 +163,26 @@ i200-guard-vni-option-off	-ovInputType=1	xd|	xd|	0
 i200-guard-vni-quickend	-ovInputType=1 -ovQuickEndConsonant=1 -ovMacroOnTab=1	nhah|	nhah|	0
 i200-guard-english-option-off	-ovLanguage=0	xd|	xd|	0
 i200-guard-telex-option-off	-	xd|	xd|	0
+#
+# --- upstream issue 141: Telex + restore-if-wrong-spelling drops a repeated key that was an undo
+#     ("official" -> "oficial"). Telex only; VNI undo keys are digits, so VNI stays as on master. ---
+# VNI guards first: restore on, an undo key followed by more keys keeps master behaviour.
+i141-guard-vni-viet	-ovInputType=1 -ovRestoreIfWrongSpelling=1	vie65t nam 	việt nam 	3
+i141-guard-vni-nguoi	-ovInputType=1 -ovRestoreIfWrongSpelling=1	nguo7i2 	người 	5
+i141-guard-vni-undo-then-key	-ovInputType=1 -ovRestoreIfWrongSpelling=1	a11b 	a1b 	2
+i141-guard-vni-undo-hat	-ovInputType=1 -ovRestoreIfWrongSpelling=1	o66n 	o6n 	2
+i141-telex-official	-ovRestoreIfWrongSpelling=1	official 	official 	9
+i141-telex-necessary	-ovRestoreIfWrongSpelling=1	necessary 	necessary 	13
+i141-telex-coffee	-ovRestoreIfWrongSpelling=1	coffee 	coffee 	7
+i141-telex-different	-ovRestoreIfWrongSpelling=1	different 	different 	10
+i141-telex-missing	-ovRestoreIfWrongSpelling=1	missing 	missing 	8
+# backspace back into a restored word, then type on: same text as typing "coaa " / "oaa " fresh.
+i141-telex-bs-coffee	-ovRestoreIfWrongSpelling=1	coffee <<<<<aa 	coaa 	-
+i141-telex-bs-official	-ovRestoreIfWrongSpelling=1	official <<<<<<<<aa 	oaa 	-
+# guards: an undo as the last key stays the literal escape it always was, a tripled key still
+#     works as the old workaround, and restore off is untouched.
+i141-guard-telex-off	-ovRestoreIfWrongSpelling=1	off 	of 	2
+i141-guard-telex-maxx	-ovRestoreIfWrongSpelling=1	maxx 	max 	2
+i141-guard-telex-offf	-ovRestoreIfWrongSpelling=1	offf 	off 	2
+i141-guard-telex-offficial	-ovRestoreIfWrongSpelling=1	offficial 	official 	2
+i141-guard-telex-restore-off	-	official 	oficial 	2
