@@ -83,3 +83,37 @@ e6-vni-242	-ovInputType=1	char <r 	charr 	-
 # a macro, so "r" -> rồi, then backspace + x gives "rồix", not "rỗi". master gave "rồĩ".
 e6-telex-r-edit	-	r <x 	rồix 	-
 e6-telex-t-edit	-	t <v 	tiếng Việt 	-
+#
+# --- upstream issue 134: k-final syllables in Central Highlands names (Đắk Lắk, Krông Búk),
+#     spell check OFF. VNI first, then Telex. Telex applies only to <onset><one vowel>k with
+#     onset b, d/đ, l, p, dr, kr (variant C, Duy 2026-11-01), so English words stay raw ---
+i134-vni-dak	-ovInputType=1 -ovCheckSpelling=0	d9ak81 	đắk 	-
+i134-vni-daklak	-ovInputType=1 -ovCheckSpelling=0	Dak981 Lak81 	Đắk Lắk 	-
+i134-vni-krongbuk	-ovInputType=1 -ovCheckSpelling=0	Kro6ng Buk1 	Krông Búk 	-
+i134-telex-dakdws	-ovCheckSpelling=0	dakdws 	đắk 	-
+i134-telex-laksw	-ovCheckSpelling=0	laksw 	lắk 	-
+i134-telex-buks	-ovCheckSpelling=0	buks 	búk 	-
+i134-telex-daklak	-ovCheckSpelling=0	Ddawks Lawks 	Đắk Lắk 	-
+# Guards, same as master: huyền/hỏi/ngã never go on a k-final; English words keep their letters.
+i134-vni-tak-huyen	-ovInputType=1 -ovCheckSpelling=0	tak2 	tak2 	-
+i134-telex-speaks	-ovCheckSpelling=0	speaks 	speaks 	-
+i134-telex-leaks	-ovCheckSpelling=0	leaks 	leaks 	-
+i134-telex-breaks	-ovCheckSpelling=0	breaks 	breaks 	-
+i134-telex-treks	-ovCheckSpelling=0	treks 	treks 	-
+i134-telex-yaks	-ovCheckSpelling=0	yaks 	yaks 	-
+i134-telex-oaks	-ovCheckSpelling=0	oaks 	oaks 	-
+# Spell check ON is unchanged from master.
+i134-vni-spellon-dak	-ovInputType=1	d9ak81 	đak81 	-
+i134-vni-spellon-daklak	-ovInputType=1	Dak981 Lak81 	Dak981 Lak81 	-
+i134-vni-spellon-krongbuk	-ovInputType=1	Kro6ng Buk1 	Kro6ng Buk1 	-
+i134-telex-spellon-dakdws	-	dakdws 	dakdws 	-
+i134-telex-spellon-daklak	-	Ddawks Lawks 	Đăks Lăks 	-
+# Accepted cost (Duy, 2026-11-01, Q2b): in Telex with spell check off, the rare English word
+# "laks" becomes "lák" (master kept "laks"). Measured: 15 English words in all (roots lak, dak,
+# duk, Lakshmi, bukshi).
+i134-cost-telex-laks	-ovCheckSpelling=0	laks 	lák 	-
+# Known gaps, pinned so a change is noticed: ek/uk with a hat or horn stay raw (no êk/ưk entry
+# reaches them; c-final converts), and there is no "ok" entry at all.
+i134-gap-vni-ek	-ovInputType=1 -ovCheckSpelling=0	ek61 	ek61 	-
+i134-gap-vni-uk	-ovInputType=1 -ovCheckSpelling=0	uk71 	uk71 	-
+i134-gap-vni-ok	-ovInputType=1 -ovCheckSpelling=0	ok1 	ok1 	-
