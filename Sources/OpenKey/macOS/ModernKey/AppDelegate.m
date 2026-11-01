@@ -90,6 +90,14 @@ extern bool convertToolDontAlertWhenCompleted;
     NSMenuItem* mnuVietnameseLocaleCP1258;
     
     NSMenuItem* mnuQuickConvert;
+
+    //Secure Input notice (adapted from hkvn/ViKey 47e101bebb, GPL-3.0;
+    //new session on each Secure Input change: idea from ntanvinh/OpenKey 240927b353, GPL-3.0)
+    NSMenuItem* mnuSecureInput;
+    NSMenuItem* mnuSecureInputSeparator;
+    BOOL _secureInputOn;
+    pid_t _secureInputPID;
+    pid_t _secureInputFrontPID;
 }
 
 -(void)askPermission {
@@ -160,6 +168,7 @@ extern bool convertToolDontAlertWhenCompleted;
         NSBeep();
 
     [self createStatusBarMenu];
+    [self startSecureInputCheck];
     
     //init
     dispatch_async(dispatch_get_main_queue(), ^{
@@ -207,6 +216,13 @@ extern bool convertToolDontAlertWhenCompleted;
     
     theMenu = [[NSMenu alloc] initWithTitle:@""];
     [theMenu setAutoenablesItems:NO];
+    
+    //only shown while Secure Input blocks typing
+    mnuSecureInput = [theMenu addItemWithTitle:@"" action:@selector(onSecureInputSelected) keyEquivalent:@""];
+    mnuSecureInput.hidden = YES;
+    mnuSecureInputSeparator = [NSMenuItem separatorItem];
+    mnuSecureInputSeparator.hidden = YES;
+    [theMenu addItem:mnuSecureInputSeparator];
     
     menuInputMethod = [theMenu addItemWithTitle:@"Bật Tiếng Việt"
                                                      action:@selector(onInputMethodSelected)
@@ -366,19 +382,9 @@ extern bool convertToolDontAlertWhenCompleted;
 - (void) fillData {
     //fill data
     NSInteger intInputMethod = [[NSUserDefaults standardUserDefaults] integerForKey:@"InputMethod"];
-    NSInteger grayIcon = [[NSUserDefaults standardUserDefaults] integerForKey:@"GrayIcon"];
-    if (intInputMethod == 1) {
-        [menuInputMethod setState:NSControlStateValueOn];
-        statusItem.button.image = [NSImage imageNamed:@"Status"];
-        [statusItem.button.image setTemplate:(grayIcon ? YES : NO)];
-        statusItem.button.alternateImage = [NSImage imageNamed:@"StatusHighlighted"];
-    } else {
-        [menuInputMethod setState:NSControlStateValueOff];
-        statusItem.button.image = [NSImage imageNamed:@"StatusEng"];
-        [statusItem.button.image setTemplate:(grayIcon ? YES : NO)];
-        statusItem.button.alternateImage = [NSImage imageNamed:@"StatusHighlightedEng"];
-    }
+    [menuInputMethod setState:(intInputMethod == 1 ? NSControlStateValueOn : NSControlStateValueOff)];
     vLanguage = (int)intInputMethod;
+    [self updateStatusIcon];
     
     NSInteger intInputType = [[NSUserDefaults standardUserDefaults] integerForKey:@"InputType"];
     [mnuTelex setState:NSControlStateValueOff];
@@ -549,9 +555,116 @@ extern bool convertToolDontAlertWhenCompleted;
 }
 
 -(void)activeAppChanged: (NSNotification*)note {
+    [self checkSecureInput];
     if (vUseSmartSwitchKey && [OpenKeyManager isInited]) {
         OnActiveAppChanged();
     }
+}
+
+-(void)updateStatusIcon {
+    //Secure Input blocks typing: show a lock until it is turned off
+    if (_secureInputOn) {
+        if (@available(macOS 11.0, *)) {
+            statusItem.button.image = [NSImage imageWithSystemSymbolName:@"lock.fill" accessibilityDescription:@"Secure Input"];
+            statusItem.button.alternateImage = nil;
+            return;
+        }
+    }
+    NSInteger grayIcon = [[NSUserDefaults standardUserDefaults] integerForKey:@"GrayIcon"];
+    if (vLanguage == 1) {
+        statusItem.button.image = [NSImage imageNamed:@"Status"];
+        [statusItem.button.image setTemplate:(grayIcon ? YES : NO)];
+        statusItem.button.alternateImage = [NSImage imageNamed:@"StatusHighlighted"];
+    } else {
+        statusItem.button.image = [NSImage imageNamed:@"StatusEng"];
+        [statusItem.button.image setTemplate:(grayIcon ? YES : NO)];
+        statusItem.button.alternateImage = [NSImage imageNamed:@"StatusHighlightedEng"];
+    }
+}
+
+#pragma mark -Secure Input
+//While any app turns on Secure Input (password field, Terminal "Secure Keyboard Entry", a password
+//manager that forgets to turn it off,...), macOS sends no key to any event tap, so OpenKey silently
+//stops typing. OpenKey cannot bypass that; it can only tell the user why.
+-(void)startSecureInputCheck {
+    //macOS posts no notification when Secure Input changes, so check it on a slow timer
+    //(IsSecureEventInputEnabled measured ~25us/call) and on every app switch
+    NSTimer* timer = [NSTimer timerWithTimeInterval:2.0 target:self selector:@selector(checkSecureInput) userInfo:nil repeats:YES];
+    timer.tolerance = 1.0;
+    [[NSRunLoop mainRunLoop] addTimer:timer forMode:NSRunLoopCommonModes];
+    [self checkSecureInput];
+}
+
+-(void)checkSecureInput {
+    BOOL on = IsSecureEventInputEnabled();
+    pid_t pid = 0;
+    pid_t frontPID = 0;
+    if (on) {
+        //may return NULL (no window server session): then the holder is just unknown
+        NSDictionary* session = CFBridgingRelease(CGSessionCopyCurrentDictionary());
+        id value = [session objectForKey:@"kCGSSessionSecureInputPID"];
+        if ([value isKindOfClass:[NSNumber class]])
+            pid = [value intValue];
+        frontPID = [NSWorkspace sharedWorkspace].frontmostApplication.processIdentifier;
+    }
+    if (on == _secureInputOn && pid == _secureInputPID && frontPID == _secureInputFrontPID)
+        return;
+
+    if (on != _secureInputOn) {
+        //keys typed while Secure Input was on never reached OpenKey: the current word is stale
+        RequestNewSession();
+    }
+    _secureInputOn = on;
+    _secureInputPID = pid;
+    _secureInputFrontPID = frontPID;
+
+    //on recent macOS the reported pid follows the frontmost app even when a background app holds
+    //Secure Input, so naming it would blame the wrong app. Name it only when it is NOT the frontmost
+    //app (loginwindow after a lock, a background holder on macOS that reports it correctly)
+    NSString* appName = (pid != frontPID) ? [self secureInputAppName] : nil;
+    mnuSecureInput.title = appName ? [NSString stringWithFormat:@"Không gõ được: Secure Input đang bật (macOS ghi nhận: %@)", appName]
+                                   : @"Không gõ được: Secure Input đang bật";
+    mnuSecureInput.hidden = !on;
+    mnuSecureInputSeparator.hidden = !on;
+    statusItem.button.toolTip = on ? mnuSecureInput.title : nil;
+    [self updateStatusIcon];
+}
+
+//app macOS reports as holding Secure Input, nil if unknown
+-(NSString*)secureInputAppName {
+    if (_secureInputPID <= 0)
+        return nil;
+    NSString* name = [NSRunningApplication runningApplicationWithProcessIdentifier:_secureInputPID].localizedName;
+    if (name.length > 0)
+        return name;
+    //not a normal app, such as loginwindow
+    char procName[256] = {0};
+    if (proc_name(_secureInputPID, procName, sizeof(procName)) > 0)
+        return [NSString stringWithUTF8String:procName];
+    return nil;
+}
+
+-(void)onSecureInputSelected {
+    if (!_secureInputOn)
+        return;
+    NSString* appName = [self secureInputAppName];
+    NSAlert *alert = [[NSAlert alloc] init];
+    [alert setMessageText:@"Secure Input đang bật"];
+    [alert setInformativeText:[NSString stringWithFormat:
+        @"Khi Secure Input bật, macOS không gửi phím cho bộ gõ, nên OpenKey tạm thời không gõ được tiếng Việt. "
+        @"Đây là tính năng bảo mật của macOS, OpenKey không vượt qua được.\n\n"
+        @"macOS ghi nhận: %@. Lưu ý: nếu ứng dụng bật Secure Input đang chạy nền (Bitwarden, KeeWeb, Zalo...), "
+        @"macOS có thể ghi nhận nhầm sang ứng dụng đang mở phía trước.\n\n"
+        @"Cách khắc phục:\n"
+        @"• Rời khỏi ô mật khẩu, hoặc chuyển sang ứng dụng khác.\n"
+        @"• Terminal, iTerm: tắt \"Secure Keyboard Entry\" trong menu của ứng dụng.\n"
+        @"• Mở khoá trình quản lý mật khẩu (Bitwarden, KeeWeb...) hoặc thoát nó.\n"
+        @"• Nếu vẫn bị: khoá màn hình rồi mở khoá lại.",
+        appName ? appName : @"không rõ ứng dụng nào"]];
+    [alert addButtonWithTitle:@"OK"];
+    [alert.window makeKeyAndOrderFront:nil];
+    [alert.window setLevel:NSStatusWindowLevel];
+    [alert runModal];
 }
 
 -(void)registerSupportedNotification {
