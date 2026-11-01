@@ -158,6 +158,8 @@ bool isWordBreak(const vKeyEvent& event, const vKeyEventState& state, const Uint
 int vMacroOnTab = 0;
 
 bool isMacroBreakCode(const int& data) {
+    if (vMacroOnTab && data == KEY_TAB)
+        return true;
     for (i = 0; i < _macroBreakCode.size(); i++) {
         if (_macroBreakCode[i] == data) {
             return true;
@@ -1412,7 +1414,7 @@ void vEnglishMode(const vKeyEventState& state, const Uint16& data, const bool& i
     if (state == vKeyEventState::MouseDown || (otherControlKey && !isCaps)) {
         hMacroKey.clear();
         _willTempOffEngine = false;
-    } else if (data == KEY_SPACE) {
+    } else if (data == KEY_SPACE || (vMacroOnTab && data == KEY_TAB)) {
         if (!_hasHandledMacro && findMacroWrapped(hMacroKey, hMacroData, hBPC, true)) {
             hCode = vReplaceMaro;
         }
@@ -1453,8 +1455,11 @@ void vKeyHandleEvent(const vKeyEvent& event,
         //check macro feature
         if (vUseMacro && isMacroBreakCode(data) && !_hasHandledMacro && findMacroWrapped(hMacroKey, hMacroData, hBPC, true)) {
             hCode = vReplaceMaro;
-            _hasHandledMacro = true;
-        } else if ((vQuickStartConsonant || vQuickEndConsonant) && !tempDisableKey && isMacroBreakCode(data)) {
+            // TAB clears hMacroKey below, so nothing is left to expand twice; keeping the flag set
+            // would block the macro in the next form field ("xd<TAB>xd<TAB>").
+            _hasHandledMacro = data != KEY_TAB;
+        } else if ((vQuickStartConsonant || vQuickEndConsonant) && !tempDisableKey && isMacroBreakCode(data)
+                   && data != KEY_TAB) { // TAB only expands macros, it never completes a consonant
             checkQuickConsonant();
         } else if (vRestoreIfWrongSpelling && isWordBreak(event, state, data)) { //restore key if wrong spelling with break-key
             if (!tempDisableKey && vCheckSpelling) {

@@ -36,6 +36,7 @@ extern int vOtherLanguage;
 extern int vTempOffOpenKey;
 extern int vShowIconOnDock;
 extern int vAutoCapsMacro;
+extern int vMacroOnTab;
 extern int vFixChromiumBrowser;
 extern int vPerformLayoutCompat;
 
@@ -357,6 +358,11 @@ extern int vPerformLayoutCompat;
     vAutoCapsMacro = (int)val;
 }
 
+- (IBAction)onMacroOnTab:(id)sender {
+    NSInteger val = [self setCustomValue:sender keyToSet:@"vMacroOnTab"];
+    vMacroOnTab = (int)val;
+}
+
 - (IBAction)onShowIconOnDock:(id)sender {
     NSInteger val = [self setCustomValue:sender keyToSet:@"vShowIconOnDock"];
     vShowIconOnDock = (int)val;
@@ -465,6 +471,9 @@ extern int vPerformLayoutCompat;
     
     value = [[NSUserDefaults standardUserDefaults] integerForKey:@"vAutoCapsMacro"];
     self.AutoCapsMacro.state = value ? NSControlStateValueOn : NSControlStateValueOff;
+
+    value = [[NSUserDefaults standardUserDefaults] integerForKey:@"vMacroOnTab"];
+    self.MacroOnTab.state = value ? NSControlStateValueOn : NSControlStateValueOff;
     
     value = [[NSUserDefaults standardUserDefaults] integerForKey:@"vShowIconOnDock"];
     self.ShowIconOnDock.state = value ? NSControlStateValueOn : NSControlStateValueOff;

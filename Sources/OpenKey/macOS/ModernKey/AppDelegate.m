@@ -39,6 +39,7 @@ int vFixRecommendBrowser = 1;
 int vUseMacro = 1;
 int vUseMacroInEnglishMode = 1;
 int vAutoCapsMacro = 0;
+extern int vMacroOnTab; // defined in Engine.cpp
 int vSendKeyStepByStep = 0;
 int vUseSmartSwitchKey = 1;
 int vUpperCaseFirstChar = 0;
@@ -303,6 +304,7 @@ extern bool convertToolDontAlertWhenCompleted;
     vUpperCaseFirstChar = 0;[[NSUserDefaults standardUserDefaults] setInteger:vUpperCaseFirstChar forKey:@"UpperCaseFirstChar"];
     vTempOffSpelling = 0;[[NSUserDefaults standardUserDefaults] setInteger:vTempOffSpelling forKey:@"vTempOffSpelling"];
     vAllowConsonantZFWJ = 0;[[NSUserDefaults standardUserDefaults] setInteger:vAllowConsonantZFWJ forKey:@"vAllowConsonantZFWJ"];
+    vMacroOnTab = 0;[[NSUserDefaults standardUserDefaults] setInteger:vMacroOnTab forKey:@"vMacroOnTab"];
     vQuickStartConsonant = 0;[[NSUserDefaults standardUserDefaults] setInteger:vQuickStartConsonant forKey:@"vQuickStartConsonant"];
     vQuickEndConsonant = 0;[[NSUserDefaults standardUserDefaults] setInteger:vQuickEndConsonant forKey:@"vQuickEndConsonant"];
     vRememberCode = 1;[[NSUserDefaults standardUserDefaults] setInteger:vRememberCode forKey:@"vRememberCode"];

@@ -101,6 +101,7 @@ extern "C" {
         LOAD_DATA(vUseMacro, UseMacro);
         LOAD_DATA(vUseMacroInEnglishMode, UseMacroInEnglishMode);
         LOAD_DATA(vAutoCapsMacro, vAutoCapsMacro);
+        LOAD_DATA(vMacroOnTab, vMacroOnTab);
         LOAD_DATA(vSendKeyStepByStep, SendKeyStepByStep);
         LOAD_DATA(vUseSmartSwitchKey, UseSmartSwitchKey);
         LOAD_DATA(vUpperCaseFirstChar, UpperCaseFirstChar);
