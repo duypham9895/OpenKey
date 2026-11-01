@@ -117,3 +117,29 @@ i134-cost-telex-laks	-ovCheckSpelling=0	laks 	lák 	-
 i134-gap-vni-ek	-ovInputType=1 -ovCheckSpelling=0	ek61 	ek61 	-
 i134-gap-vni-uk	-ovInputType=1 -ovCheckSpelling=0	uk71 	uk71 	-
 i134-gap-vni-ok	-ovInputType=1 -ovCheckSpelling=0	ok1 	ok1 	-
+#
+# --- upstream issue 279: a macro fires when its key is wrapped in quotes ' " ` (QUOTES ONLY,
+#     Duy 2026-11-01, Q3a/6 B). ' and " are break keys, so the macro fires on the closing quote
+#     itself; ` is not, so it fires on SPACE / a break key and the closing ` is kept.
+#     Accepted (Q3/6 A): this also fires in code (x = "r") and in English mode. VNI first. ---
+i279-vni-dq-test	-ovInputType=1	"test" 	"TEST" 	4
+i279-vni-sq-test	-ovInputType=1	'test' 	'TEST' 	4
+i279-vni-bq-test	-ovInputType=1	`test` 	`TEST` 	5
+i279-vni-dq-tv	-ovInputType=1	"tv"	"tiếng Việt"	2
+i279-vni-sq-r	-ovInputType=1	'r'	'rồi'	1
+i279-vni-code-r	-ovInputType=1	x = "r"	x = "rồi"	1
+i279-vni-bq-tv-dot	-ovInputType=1	`tv`. 	`tiếng Việt`. 	3
+i279-english-sq-r	-ovLanguage=0	'r' 	'rồi' 	2
+i279-telex-dq-tv	-	"tv"	"tiếng Việt"	2
+i279-telex-sq-r	-	'r'	'rồi'	1
+# Guards, same as master: parentheses are NOT delimiters (dropped from this fix, Duy Q3a/6 B),
+# a quote inside a word is not an opener, and a call like f("r") stays as typed.
+i279-guard-vni-paren	-ovInputType=1	(test) 	(test) 	0
+i279-guard-vni-paren-bs	-ovInputType=1	( <test 	(test 	1
+i279-guard-vni-caps9	-ovInputType=1	^9^ <test 	9test 	1
+i279-guard-vni-caps9-paren	-ovInputType=1	^9^ (<<test 	9test 	2
+i279-guard-vni-dont	-ovInputType=1	don't 	don't 	0
+i279-guard-vni-its	-ovInputType=1	it's 	it's 	0
+i279-guard-vni-call	-ovInputType=1	f("r") 	f("r") 	0
+i279-guard-telex-dont	-	don't 	don't 	0
+i279-guard-telex-call	-	f("r") 	f("r") 	0
