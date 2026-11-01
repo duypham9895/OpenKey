@@ -36,6 +36,13 @@ e3-telex-keep-keys	-ovRestoreIfWrongSpelling=1	vieejt <k 	vieejtk 	-
 e4-vni-216	-ovInputType=1	hoat88	hoat8	-
 e4-telex-216	-	hoatww	hoatw	-
 e4-telex-216-spelloff	-ovCheckSpelling=0	bloatww	bloatw	-
+# One rule for every vowel pair (Duy, 2026-11-01): pressing the horn/breve key again undoes it,
+# as a11 and o66 already did. master undid tu77 / nguo77 but silently kept lưu / thuơ.
+e4-vni-undo-luu	-ovInputType=1	luu77	luu7	-
+e4-vni-undo-cuu	-ovInputType=1	cuu77	cuu7	-
+e4-vni-undo-thuo	-ovInputType=1	thuo77	thuo7	-
+e4-vni-undo-tu	-ovInputType=1	tu77	tu7	-
+e4-vni-single-luu	-ovInputType=1	luu7	lưu	-
 #
 # --- E5 / upstream issue 313: macro key starting with a standalone w (= ư) fires. Telex only:
 #     VNI u7d already works on master. ---
