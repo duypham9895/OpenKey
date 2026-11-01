@@ -606,6 +606,11 @@ extern "C" {
         //or after certain user input, and tells us through these two pseudo event types.
         //Without re-enabling here, OpenKey silently stops converting until it is relaunched.
         if (type == kCGEventTapDisabledByTimeout || type == kCGEventTapDisabledByUserInput) {
+            //keys typed while the tap was off went straight to the app, so the engine's current
+            //word no longer matches the screen; start fresh so the next mark key cannot
+            //backspace over text the engine never saw
+            RequestNewSession();
+            _lastFlag = 0;
             OpenKeyReEnableEventTap();
             return event;
         }
