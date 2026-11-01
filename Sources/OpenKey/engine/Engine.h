@@ -126,6 +126,12 @@ extern int vUseMacroInEnglishMode;
 extern int vAutoCapsMacro;
 
 /**
+ * 1: TAB also expands a macro, like SPACE and ENTER (upstream issue 200). Default 0.
+ * Defined in Engine.cpp, so a host that never sets it needs no change.
+ */
+extern int vMacroOnTab;
+
+/**
  * auto switch language when switch app
  * 0: No
  * 1: Yes

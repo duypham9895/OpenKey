@@ -153,6 +153,10 @@ bool isWordBreak(const vKeyEvent& event, const vKeyEventState& state, const Uint
     return false;
 }
 
+// upstream issue 200: 1 = TAB also expands a macro. Defined here, so a host that never sets it
+// needs no change. Default 0 keeps TAB as on master.
+int vMacroOnTab = 0;
+
 bool isMacroBreakCode(const int& data) {
     for (i = 0; i < _macroBreakCode.size(); i++) {
         if (_macroBreakCode[i] == data) {

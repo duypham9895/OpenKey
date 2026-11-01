@@ -143,3 +143,23 @@ i279-guard-vni-its	-ovInputType=1	it's 	it's 	0
 i279-guard-vni-call	-ovInputType=1	f("r") 	f("r") 	0
 i279-guard-telex-dont	-	don't 	don't 	0
 i279-guard-telex-call	-	f("r") 	f("r") 	0
+#
+# --- upstream issue 200: TAB expands a macro, only with vMacroOnTab=1 (default 0). '|' = TAB.
+#     The host re-sends the TAB after the macro, as it does for SPACE. Option off = master. ---
+i200-vni-on	-ovInputType=1 -ovMacroOnTab=1	xd|	xây dựng|	2
+i200-vni-two-fields	-ovInputType=1 -ovMacroOnTab=1	xd|xd|	xây dựng|xây dựng|	4
+i200-vni-then-word	-ovInputType=1 -ovMacroOnTab=1	xd|tv 	xây dựng|tiếng Việt 	4
+i200-vni-open-quote	-ovInputType=1 -ovMacroOnTab=1	"xd|	"xây dựng|	2
+i200-english-on	-ovLanguage=0 -ovMacroOnTab=1	xd|	xây dựng|	2
+i200-english-two-fields	-ovLanguage=0 -ovMacroOnTab=1	xd|xd|	xây dựng|xây dựng|	4
+i200-telex-on	-ovMacroOnTab=1	xd|	xây dựng|	2
+i200-vni-tab-then-space	-ovInputType=1 -ovMacroOnTab=1	xd| 	xây dựng| 	2
+# guards: the closing quote already expanded the macro, so TAB must not expand it again;
+#     no macro, macros off, option off and quick consonants stay as on master.
+i200-guard-vni-closed-quote	-ovInputType=1 -ovMacroOnTab=1	"xd"|	"xây dựng"|	2
+i200-guard-vni-no-macro	-ovInputType=1 -ovMacroOnTab=1	ab|	ab|	0
+i200-guard-vni-macro-off	-ovInputType=1 -ovUseMacro=0 -ovMacroOnTab=1	xd|	xd|	0
+i200-guard-vni-option-off	-ovInputType=1	xd|	xd|	0
+i200-guard-vni-quickend	-ovInputType=1 -ovQuickEndConsonant=1 -ovMacroOnTab=1	nhah|	nhah|	0
+i200-guard-english-option-off	-ovLanguage=0	xd|	xd|	0
+i200-guard-telex-option-off	-	xd|	xd|	0
