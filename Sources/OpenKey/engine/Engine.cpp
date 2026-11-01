@@ -1529,7 +1529,8 @@ void vKeyHandleEvent(const vKeyEvent& event,
             _index = 0;
             if (hCode == vReplaceMaro) {
                 // A macro replaced the word: its raw keys must not leak into the next word's
-                // restore-if-wrong-spelling (reachable since TAB macros keep _hasHandledMacro false).
+                // restore-if-wrong-spelling. Reachable through every non-space macro trigger
+                // ("tv.eas." on master too), not only TAB, so keep this reset for all of them.
                 _stateIndex = 0;
                 _undoCount = 0;
             }
@@ -1688,7 +1689,7 @@ void vKeyHandleEvent(const vKeyEvent& event,
             //VNI undo keys are digits, which no English word contains, so VNI keeps its old behaviour
             //a third identical key after a doubled pair ("ooo", "ddd") is the old "type it three times"
             //workaround: the pair is already in KeyStates, so there is nothing to put back
-            const bool tripled = _stateIndex >= 2 &&
+            const bool tripled = vInputType != vVNI && _stateIndex >= 2 &&
                 (KeyStates[_stateIndex-1] & CHAR_MASK) == (KeyStates[_stateIndex] & CHAR_MASK) &&
                 (KeyStates[_stateIndex-2] & CHAR_MASK) == (KeyStates[_stateIndex] & CHAR_MASK);
             if (vInputType != vVNI && !tripled && _undoCount < MAX_BUFF) {
