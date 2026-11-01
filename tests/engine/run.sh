@@ -9,7 +9,8 @@
 # cases.tsv columns (tab separated):
 #   id  options  keys  expected_text  expected_bs
 #   options: space separated -oNAME=VALUE, or "-" for defaults (Telex, spell check on)
-#   keys: as typed; ' ' = space, '<' = backspace
+#   keys: as typed; ' ' = space, '<' = backspace, '|' = TAB, '^' = Caps Lock toggle
+#         (full key list in engine_harness.cpp)
 #   expected_bs: number of synthetic backspaces, or "-" to skip that check
 set -eu
 
@@ -19,10 +20,19 @@ CXX=${CXX:-clang++}
 WORK=$(mktemp -d "${TMPDIR:-/tmp}/openkey-engine-tests.XXXXXX")
 trap 'rm -rf "$WORK"' EXIT
 
+# vMacroOnTab is a weak reference in the harness, so it links against engines
+# that predate it. ld64 (macOS) still needs to be told it may stay undefined.
+LDWEAK=
+[ "$(uname -s)" = Darwin ] && LDWEAK=-Wl,-U,_vMacroOnTab
+
 build() { # build <engine dir> <output binary>
     "$CXX" -std=c++17 -w -I"$1" "$HERE/engine_harness.cpp" \
         "$1/Engine.cpp" "$1/Vietnamese.cpp" "$1/Macro.cpp" \
-        "$1/SmartSwitchKey.cpp" "$1/ConvertTool.cpp" -o "$2"
+        "$1/SmartSwitchKey.cpp" "$1/ConvertTool.cpp" $LDWEAK -o "$2"
+}
+
+has_option() { # has_option <binary> <-oNAME=VALUE>: does this engine accept it?
+    "$1" "$2" a >/dev/null 2>&1
 }
 
 run_row() { # run_row <binary> <options or -> <keys>
@@ -37,13 +47,23 @@ if [ "${1:-}" = "compare" ]; then
     build "$2" "$WORK/old"
     build "$3" "$WORK/new"
     rows=0; diffs=0
-    # corpus.txt: one keystroke sequence per line, run under every option set below.
+    # Option sets, one per positional parameter: 8 that every engine supports,
+    # English mode, and TAB-macro only when both engines define vMacroOnTab.
+    set -- "-ovInputType=1" "-ovInputType=1 -ovCheckSpelling=0" \
+           "-ovInputType=1 -ovRestoreIfWrongSpelling=1" "-ovInputType=1 -ovUseModernOrthography=0" \
+           "-ovInputType=0" "-ovInputType=0 -ovCheckSpelling=0" \
+           "-ovInputType=0 -ovRestoreIfWrongSpelling=1" "-ovInputType=0 -ovQuickTelex=1" \
+           "-ovLanguage=0"
+    if has_option "$WORK/old" -ovMacroOnTab=1 && has_option "$WORK/new" -ovMacroOnTab=1; then
+        set -- "$@" "-ovInputType=1 -ovCheckSpelling=0 -ovMacroOnTab=1"
+    else
+        echo "note: skipped option set '-ovInputType=1 -ovCheckSpelling=0 -ovMacroOnTab=1':" \
+             "vMacroOnTab is not defined by both engines"
+    fi
+    # corpus.txt: one keystroke sequence per line, run under every option set above.
     while IFS= read -r keys || [ -n "$keys" ]; do
         case "$keys" in ''|'#'*) continue ;; esac
-        for opts in "-ovInputType=1" "-ovInputType=1 -ovCheckSpelling=0" \
-                    "-ovInputType=1 -ovRestoreIfWrongSpelling=1" "-ovInputType=1 -ovUseModernOrthography=0" \
-                    "-ovInputType=0" "-ovInputType=0 -ovCheckSpelling=0" \
-                    "-ovInputType=0 -ovRestoreIfWrongSpelling=1" "-ovInputType=0 -ovQuickTelex=1"; do
+        for opts in "$@"; do
             for k in "$keys" "$keys "; do
                 rows=$((rows + 1))
                 a=$(run_row "$WORK/old" "$opts" "$k")
