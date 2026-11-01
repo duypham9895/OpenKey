@@ -373,7 +373,9 @@ extern "C" {
         CGEventTapPostEvent(_proxy, eventBackSpaceDown);
         CGEventTapPostEvent(_proxy, eventBackSpaceUp);
         
-        if (IS_DOUBLE_CODE(vCodeTable)) { //VNI or Unicode Compound
+        //_syncKey can be shorter than the engine's backspace count (it is host-side bookkeeping);
+        //back()/pop_back() on an empty vector is undefined behaviour
+        if (IS_DOUBLE_CODE(vCodeTable) && !_syncKey.empty()) { //VNI or Unicode Compound
             if (_syncKey.back() > 1) {
                 if (!(vCodeTable == 3 && containUnicodeCompoundApp(FRONT_APP))) {
                     CGEventTapPostEvent(_proxy, eventBackSpaceDown);
@@ -395,7 +397,9 @@ extern "C" {
         CGEventTapPostEvent(_proxy, eventVkeyDown);
         CGEventTapPostEvent(_proxy, eventVkeyUp);
         
-        if (IS_DOUBLE_CODE(vCodeTable)) { //VNI or Unicode Compound
+        //_syncKey can be shorter than the engine's backspace count (it is host-side bookkeeping);
+        //back()/pop_back() on an empty vector is undefined behaviour
+        if (IS_DOUBLE_CODE(vCodeTable) && !_syncKey.empty()) { //VNI or Unicode Compound
             if (_syncKey.back() > 1) {
                 if (!(vCodeTable == 3 && containUnicodeCompoundApp(FRONT_APP))) {
                     CGEventTapPostEvent(_proxy, eventVkeyDown);
@@ -678,8 +682,7 @@ extern "C" {
 
         // Also check correct event hooked
         if ((type != kCGEventKeyDown) && (type != kCGEventKeyUp) &&
-            (type != kCGEventLeftMouseDown) && (type != kCGEventRightMouseDown) &&
-            (type != kCGEventLeftMouseDragged) && (type != kCGEventRightMouseDragged))
+            (type != kCGEventLeftMouseDown) && (type != kCGEventRightMouseDown))
             return event;
         
         _proxy = proxy;
@@ -701,7 +704,7 @@ extern "C" {
         }
         
         //handle mouse
-        if (type == kCGEventLeftMouseDown || type == kCGEventRightMouseDown || type == kCGEventLeftMouseDragged || type == kCGEventRightMouseDragged) {
+        if (type == kCGEventLeftMouseDown || type == kCGEventRightMouseDown) {
             RequestNewSession();
             return event;
         }
