@@ -299,11 +299,11 @@ void checkGrammar(const int& deltaBackSpace) {
     
     l = VSI;
     
-    //if N key for case: "thuơn", "ưoi", "ưom", "ưoc"
+    //if N key for case: "thuơn", "ưoi", "ưom", "ưoc"; U for "huơ" + u -> "hươu", "khuơ" + u -> "khướu"
     if (_index >= 3) {
         for (i = _index-1; i >= 0; i--) {
             if (CHR(i) == KEY_N || CHR(i) == KEY_C || CHR(i) == KEY_I ||
-                CHR(i) == KEY_M || CHR(i) == KEY_P || CHR(i) == KEY_T) {
+                CHR(i) == KEY_M || CHR(i) == KEY_P || CHR(i) == KEY_T || CHR(i) == KEY_U) {
                 if (i - 2 >= 0 && CHR(i - 1) == KEY_O && CHR(i - 2) == KEY_U) {
                     if ((TypingWord[i-1] & TONEW_MASK) ^ (TypingWord[i-2] & TONEW_MASK)) {
                         TypingWord[i - 2] |= TONEW_MASK;
@@ -449,6 +449,30 @@ void restoreLastTypingState() {
                     TypingWord[i] = _typingStatesData[i];
                 }
                 _index = (Byte)_typingStatesData.size();
+                //if another word was started and deleted since, the key states were wiped and the
+                //next key would be judged against an empty state (spelling, restore-if-wrong).
+                //Rebuild them then. The original tone keys are not kept in TypingWord, so rebuilt
+                //states hold the base letters only - which is why states that still survive
+                //(backspacing straight back into the word just typed) are left untouched.
+                if (_stateIndex == 0) {
+                    for (i = 0; i < _index; i++) {
+                        insertState(TypingWord[i] & CHAR_MASK, (TypingWord[i] & CAPS_MASK) != 0);
+                    }
+                }
+                if (vCheckSpelling)
+                    checkSpelling();
+            }
+            if (vUseMacro) {
+                //the macro key must describe the word now being edited, not whatever was typed
+                //before the backspace; otherwise "char" + space + backspace + "r" fires macro "r"
+                hMacroKey.clear();
+                if (_index > 0) {
+                    for (i = 0; i < _index; i++) {
+                        hMacroKey.push_back(TypingWord[i]);
+                    }
+                } else if (_specialChar.size() > 0) {
+                    hMacroKey = _specialChar;
+                }
             }
         }
     }
@@ -870,9 +894,11 @@ void insertAOE(const Uint16& data, const bool& isCaps) {
 
 void insertW(const Uint16& data, const bool& isCaps) {
     isRestoredW = false;
-    
+
     findAndCalculateVowel();
-    
+    //saved before the ^ marks are stripped below, so a w that only removes a ^ still counts as a change
+    const Uint32 wBefore0 = TypingWord[VSI], wBefore1 = TypingWord[VSI+1];
+
     //remove ^ tone
     for (ii = VSI; ii <= VEI; ii++) {
         TypingWord[ii] &= ~TONE_MASK;
@@ -905,6 +931,14 @@ void insertW(const Uint16& data, const bool& isCaps) {
                     }
                 } else if (VSI - 1 >= 0 && TypingWord[VSI - 1] == KEY_Q) {
                     TypingWord[VSI+1] |= TONEW_MASK;
+                } else if (!vFreeMark && VSI + 2 >= _index &&
+                           ((VSI == 1 && CHR(0) == KEY_H) ||
+                            (VSI == 2 && CHR(0) == KEY_K && CHR(1) == KEY_H))) {
+                    //"huơ", "khuơ": with an h/kh onset and nothing after "uo", horn only the o.
+                    //A following coda (n, c, i, m, p, t, u) re-horns the u in checkGrammar, so
+                    //"hương", "hươu", "khướu" still come out right. Kept to h/kh on purpose (Duy,
+                    //2026-11-01): other onsets keep "ươ" and pay no extra rewrite.
+                    TypingWord[VSI+1] |= TONEW_MASK;
                 } else {
                     TypingWord[VSI] |= TONEW_MASK;
                     TypingWord[VSI+1] |= TONEW_MASK;
@@ -923,9 +957,21 @@ void insertW(const Uint16& data, const bool& isCaps) {
                 isChanged = false;
                 hCode = vDoNothing;
             }
-            
-            for (ii = VSI; ii < _index; ii++) {
-                hData[_index - 1 - ii] = GET(TypingWord[ii]);
+
+            if (hCode == vWillProcess && wBefore0 == TypingWord[VSI] && wBefore1 == TypingWord[VSI+1]) {
+                //the horn/breve was already there (e.g. "oă", "iơ"), so this w is a second press:
+                //undo it like a repeated mark key instead of re-applying the same mark.
+                hCode = vRestore;
+                for (ii = VSI; ii < _index; ii++) {
+                    TypingWord[ii] &= ~TONEW_MASK;
+                    hData[_index - 1 - ii] = GET(TypingWord[ii]) & ~STANDALONE_MASK;
+                }
+                isRestoredW = true;
+                tempDisableKey = true;
+            } else {
+                for (ii = VSI; ii < _index; ii++) {
+                    hData[_index - 1 - ii] = GET(TypingWord[ii]);
+                }
             }
         }
         
@@ -1447,6 +1493,8 @@ void vKeyHandleEvent(const vKeyEvent& event,
                 }
                 if (vCheckSpelling)
                     checkSpelling();
+                else
+                    tempDisableKey = false; //a restore (e.g. "aaa", "a11") set it; deleting must re-enable typing
             }
             if (vUseMacro && hMacroKey.size() > 0) {
                 hMacroKey.pop_back();
@@ -1524,7 +1572,10 @@ void vKeyHandleEvent(const vKeyEvent& event,
                         hMacroKey.pop_back();
                     }
                 }
-                for (i = _index - hBPC; i < hNCC + (_index - hBPC); i++) {
+                //when the rewrite lengthened the word (a standalone w became ư, or checkGrammar
+                //re-marked an earlier vowel), the hNCC new chars end at _index, not at _index-hBPC+hNCC
+                int macroStart = (hCode == vWillProcess && hNCC > hBPC) ? _index - hNCC : _index - hBPC;
+                for (i = macroStart; i < macroStart + hNCC; i++) {
                     hMacroKey.push_back(TypingWord[i]);
                 }
             }

@@ -68,6 +68,9 @@ extern "C" {
     CGKeyCode _keycode;
     CGEventFlags _flag, _lastFlag = 0, _privateFlag;
     CGEventTapProxy _proxy;
+
+    //defined in OpenKeyManager.m
+    extern void OpenKeyReEnableEventTap(void);
     
     Uint16 _newCharString[MAX_UNICODE_STRING];
     Uint16 _newCharSize;
@@ -599,6 +602,19 @@ extern "C" {
      * MAIN Callback.
      */
     CGEventRef OpenKeyCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void *refcon) {
+        //macOS turns the tap off if this callback misses its deadline (heavy system load)
+        //or after certain user input, and tells us through these two pseudo event types.
+        //Without re-enabling here, OpenKey silently stops converting until it is relaunched.
+        if (type == kCGEventTapDisabledByTimeout || type == kCGEventTapDisabledByUserInput) {
+            //keys typed while the tap was off went straight to the app, so the engine's current
+            //word no longer matches the screen; start fresh so the next mark key cannot
+            //backspace over text the engine never saw
+            RequestNewSession();
+            _lastFlag = 0;
+            OpenKeyReEnableEventTap();
+            return event;
+        }
+
         //dont handle my event
         if (CGEventGetIntegerValueField(event, kCGEventSourceStateID) == CGEventSourceGetSourceStateID(myEventSource)) {
             return event;
@@ -695,16 +711,17 @@ extern "C" {
             TISInputSourceRef isource = TISCopyCurrentKeyboardInputSource();
             if ( isource != NULL )
             {
+                //Get rule: `languages` and its items belong to `isource`; only `isource` is ours to release
                 CFArrayRef languages = (CFArrayRef) TISGetInputSourceProperty(isource, kTISPropertyInputSourceLanguages);
-                
-                if (CFArrayGetCount(languages) > 0) {
+                BOOL isEnglish = YES; //no language list: keep Vietnamese on, as before
+                if (languages && CFArrayGetCount(languages) > 0) {
                     CFStringRef langRef = (CFStringRef)CFArrayGetValueAtIndex(languages, 0);
                     NSString *currentLanguage = (__bridge NSString *)langRef;
-                    if(![currentLanguage isLike:@"en"]){
-                        return event;
-                    }
-                    CFRelease(langRef);
-                    CFRelease(isource);
+                    isEnglish = [currentLanguage isLike:@"en"];
+                }
+                CFRelease(isource); //after the last use of langRef, which isource owns
+                if (!isEnglish) {
+                    return event;
                 }
             }
         }

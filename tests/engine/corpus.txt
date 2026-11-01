@@ -1,0 +1,70 @@
+# Keystroke sequences for `run.sh compare`. Each line runs under 8 option sets (VNI and Telex)
+# with and without a trailing space. VNI sequences first.
+vie65t nam
+tie61ng Vie65t
+Nguye64n
+d9u7o7ng2
+nguo7i2
+nguoi72
+d9uo7c5
+d9uoc75
+truo7ng2
+truong72
+ru7o75u
+hu7o7u
+huo7u
+huo7ng
+huong7
+thu7o73
+thuo73
+quo7
+uo7
+giuo7
+nguo7n
+huo7
+khuo7
+HUO7
+Huo7
+huo77
+khuo77
+kho6ng
+gi2
+a11
+o66
+d9d9
+huy5ch
+khuye63n
+hoa2
+thuy3
+qua1
+hoat88
+bloa88
+cdime a<<4
+char <r
+r <1
+a11<1
+tha666<<66
+vieetj nam
+tieengs Vieejt
+nguwowif
+dduowcj
+truwowngf
+huowng
+huowu
+khuowus
+thuowr
+huow
+khuow
+huoww
+bloatware
+hoatww
+wd
+uwd
+gif
+quas
+ddaay
+cdime a<<x
+t <v
+r <x
+thaaa<<aa
+tv
