@@ -449,6 +449,15 @@ void restoreLastTypingState() {
                     TypingWord[i] = _typingStatesData[i];
                 }
                 _index = (Byte)_typingStatesData.size();
+                //rebuild the key states of the restored word, otherwise the next key is judged
+                //against an empty state (spelling, restore-if-wrong). The original tone keys are
+                //not kept in TypingWord, so the rebuilt states hold the base letters only.
+                _stateIndex = 0;
+                for (i = 0; i < _index; i++) {
+                    insertState(TypingWord[i] & CHAR_MASK, (TypingWord[i] & CAPS_MASK) != 0);
+                }
+                if (vCheckSpelling)
+                    checkSpelling();
             }
         }
     }
