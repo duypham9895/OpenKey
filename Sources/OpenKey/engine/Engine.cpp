@@ -1549,7 +1549,10 @@ void vKeyHandleEvent(const vKeyEvent& event,
                         hMacroKey.pop_back();
                     }
                 }
-                for (i = _index - hBPC; i < hNCC + (_index - hBPC); i++) {
+                //when the rewrite lengthened the word (a standalone w became ư, or checkGrammar
+                //re-marked an earlier vowel), the hNCC new chars end at _index, not at _index-hBPC+hNCC
+                int macroStart = (hCode == vWillProcess && hNCC > hBPC) ? _index - hNCC : _index - hBPC;
+                for (i = macroStart; i < macroStart + hNCC; i++) {
                     hMacroKey.push_back(TypingWord[i]);
                 }
             }
