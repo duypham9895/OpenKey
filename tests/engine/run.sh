@@ -66,8 +66,8 @@ if [ "${1:-}" = "compare" ]; then
         for opts in "$@"; do
             for k in "$keys" "$keys "; do
                 rows=$((rows + 1))
-                a=$(run_row "$WORK/old" "$opts" "$k")
-                b=$(run_row "$WORK/new" "$opts" "$k")
+                a=$(run_row "$WORK/old" "$opts" "$k" 2>&1) || a="HARNESS ERROR rc=$?: $a"
+                b=$(run_row "$WORK/new" "$opts" "$k" 2>&1) || b="HARNESS ERROR rc=$?: $b"
                 if [ "$a" != "$b" ]; then
                     diffs=$((diffs + 1))
                     printf '%s\t[%s]\n    old: %s\n    new: %s\n' "$opts" "$k" "$a" "$b"
@@ -84,7 +84,7 @@ pass=0; fail=0
 TAB=$(printf '\t')
 while IFS="$TAB" read -r id opts keys want_text want_bs || [ -n "$id" ]; do
     case "$id" in ''|'#'*) continue ;; esac
-    out=$(run_row "$WORK/h" "$opts" "$keys")
+    out=$(run_row "$WORK/h" "$opts" "$keys" 2>&1) || out="HARNESS ERROR rc=$?: $out"
     got_text=${out%%"$TAB"bs=*}
     rest=${out#*"$TAB"bs=}
     got_bs=${rest%%"$TAB"*}
