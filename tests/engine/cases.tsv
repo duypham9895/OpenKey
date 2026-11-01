@@ -26,6 +26,11 @@ e2-telex-145	-ovCheckSpelling=0	thaaa<<aa	thâ	-
 e3-vni-162	-ovInputType=1	cdime a<<4 	cdime4 	-
 e3-telex-162	-	cdime a<<x 	cdimex 	-
 e3-telex-162-restore	-ovRestoreIfWrongSpelling=1	cdime a<<x 	cdimex 	-
+# Backspacing straight back into the word just typed must keep its own raw keys (incl. tone
+# keys) for restore-if-wrong. These already worked on master; found in result review.
+e3-vni-keep-keys	-ovInputType=1 -ovRestoreIfWrongSpelling=1	vie65t <z 	vie65tz 	-
+e3-vni-keep-keys-horn	-ovInputType=1 -ovRestoreIfWrongSpelling=1	d9u7o7ng2 <x 	d9u7o7ng2x 	-
+e3-telex-keep-keys	-ovRestoreIfWrongSpelling=1	vieejt <k 	vieejtk 	-
 #
 # --- E4 / upstream issue 216: a second w / 8 undoes the breve on "oă" ---
 e4-vni-216	-ovInputType=1	hoat88	hoat8	-
@@ -67,5 +72,7 @@ e1-cost-huong-7-last	-ovInputType=1	huong7	hương	-
 #     backspacing into the previous word, so a fragment no longer fires a macro ---
 e6-telex-242	-	char <r 	char 	-
 e6-vni-242	-ovInputType=1	char <r 	charr 	-
+# Known limitation, pinned so a change is noticed: a tone key cannot go onto text produced by
+# a macro, so "r" -> rồi, then backspace + x gives "rồix", not "rỗi". master gave "rồĩ".
 e6-telex-r-edit	-	r <x 	rồix 	-
 e6-telex-t-edit	-	t <v 	tiếng Việt 	-
