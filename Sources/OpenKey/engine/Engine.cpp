@@ -1354,6 +1354,53 @@ bool checkQuickConsonant() {
     }
     return false;
 }
+
+//upstream issue 279: a macro also fires when its key is wrapped in quotes, e.g. "test", 'r' or `tv`.
+//Only quotes are openers: ' and " (KEY_QUOTE) and unshifted ` (KEY_BACKQUOTE). Parentheses, digits and
+//the keys / - = . \ ; [ ] are never stripped, because macro keys such as "9x", "-v", ".vn" or "/s"
+//start with them and Telex uses [ ] as letters.
+static Uint32 macroOpenDelimiter(const Uint32& k) { //returns the matching closing key, or 0
+    if (k & CHAR_CODE_MASK)
+        return 0;
+    const Uint32 c = k & CHAR_MASK;
+    if (c == KEY_QUOTE)
+        return k & (CHAR_MASK | CAPS_MASK); //' closes ', " closes "
+    if (c == KEY_BACKQUOTE && !(k & CAPS_MASK))
+        return KEY_BACKQUOTE;
+    return 0;
+}
+
+//Tries the full key first, so a macro whose own key starts with a quote still wins; then the key
+//without its opening quote. allowClose: also strip a matching closing quote at the end and put it
+//back after the macro text. Valid at SPACE and at break keys, because the host re-sends the trigger
+//key in both cases, so only the deleted closing quote has to be restored.
+static bool findMacroWrapped(vector<Uint32>& key, vector<Uint32>& out, Byte& bpc, const bool& allowClose) {
+    const vector<Uint32> full = key; //findMacro converts its argument in place
+    if (findMacro(key, out)) {
+        bpc = static_cast<Byte>(key.size());
+        return true;
+    }
+    if (full.size() < 2)
+        return false;
+    const Uint32 close = macroOpenDelimiter(full[0]);
+    if (close == 0)
+        return false;
+    vector<Uint32> inner(full.begin() + 1, full.end());
+    if (findMacro(inner, out)) {
+        bpc = static_cast<Byte>(inner.size());
+        return true;
+    }
+    const Uint32 last = full.back();
+    if (allowClose && full.size() >= 3 && !(last & CHAR_CODE_MASK) && (last & (CHAR_MASK | CAPS_MASK)) == close) {
+        inner.assign(full.begin() + 1, full.end() - 1);
+        if (findMacro(inner, out)) {
+            bpc = static_cast<Byte>(inner.size() + 1);
+            out.push_back(close);
+            return true;
+        }
+    }
+    return false;
+}
 /*==========================================================================================================*/
 
 void vEnglishMode(const vKeyEventState& state, const Uint16& data, const bool& isCaps, const bool& otherControlKey) {
@@ -1362,9 +1409,8 @@ void vEnglishMode(const vKeyEventState& state, const Uint16& data, const bool& i
         hMacroKey.clear();
         _willTempOffEngine = false;
     } else if (data == KEY_SPACE) {
-        if (!_hasHandledMacro && findMacro(hMacroKey, hMacroData)) {
+        if (!_hasHandledMacro && findMacroWrapped(hMacroKey, hMacroData, hBPC, true)) {
             hCode = vReplaceMaro;
-            hBPC = (Byte)hMacroKey.size();
         }
         hMacroKey.clear();
         _willTempOffEngine = false;
@@ -1401,9 +1447,8 @@ void vKeyHandleEvent(const vKeyEvent& event,
         hExt = 1; //word break
         
         //check macro feature
-        if (vUseMacro && isMacroBreakCode(data) && !_hasHandledMacro && findMacro(hMacroKey, hMacroData)) {
+        if (vUseMacro && isMacroBreakCode(data) && !_hasHandledMacro && findMacroWrapped(hMacroKey, hMacroData, hBPC, true)) {
             hCode = vReplaceMaro;
-            hBPC = (Byte)hMacroKey.size();
             _hasHandledMacro = true;
         } else if ((vQuickStartConsonant || vQuickEndConsonant) && !tempDisableKey && isMacroBreakCode(data)) {
             checkQuickConsonant();
@@ -1460,9 +1505,8 @@ void vKeyHandleEvent(const vKeyEvent& event,
         if (!tempDisableKey && vCheckSpelling) {
             checkSpelling(true); //force check spelling
         }
-        if (vUseMacro && !_hasHandledMacro && findMacro(hMacroKey, hMacroData)) { //macro
+        if (vUseMacro && !_hasHandledMacro && findMacroWrapped(hMacroKey, hMacroData, hBPC, true)) { //macro
             hCode = vReplaceMaro;
-            hBPC = (Byte)hMacroKey.size();
             _spaceCount++;
             _hasHandledMacro = true;
         } else if ((vQuickStartConsonant || vQuickEndConsonant) && !tempDisableKey && checkQuickConsonant()) {
