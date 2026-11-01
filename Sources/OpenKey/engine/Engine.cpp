@@ -1447,6 +1447,8 @@ void vKeyHandleEvent(const vKeyEvent& event,
                 }
                 if (vCheckSpelling)
                     checkSpelling();
+                else
+                    tempDisableKey = false; //a restore (e.g. "aaa", "a11") set it; deleting must re-enable typing
             }
             if (vUseMacro && hMacroKey.size() > 0) {
                 hMacroKey.pop_back();
