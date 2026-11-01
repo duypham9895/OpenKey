@@ -489,6 +489,28 @@ void startNewSession() {
     _longWordHelper.clear();
 }
 
+//upstream issue 134 (Telex): the word is <onset><one vowel>k as in the Central Highlands names that use k
+//(Đắk, Lắk, Búk, Pắk, M'Đrắk): onset b, d/đ, l, p, dr or kr; vowel a/ă/â, u/ư, or e only as "ê"
+static bool isVietnameseKSyllable() {
+    static const char* const onsets[] = {"b", "d", "l", "p", "dr", "kr"};
+    if (_index < 2 || CHR(_index-1) != KEY_K)
+        return false;
+    const Uint16 vowel = CHR(_index-2);
+    if (!(vowel == KEY_A || vowel == KEY_U || (vowel == KEY_E && (TypingWord[_index-2] & TONE_MASK))))
+        return false;
+    std::string onset;
+    for (int n = 0; n < _index-2; n++) {
+        const char c = static_cast<char>(keyCodeToCharacter(CHR(n)));
+        if (c < 'a' || c > 'z')
+            return false;
+        onset += c;
+    }
+    for (const char* o : onsets)
+        if (onset == o)
+            return true;
+    return false;
+}
+
 void checkCorrectVowel(vector<vector<Uint16>>& charset, int& i, int& k, const Uint16& markKey) {
     //ignore "qu" case
     if (_index >= 2 && CHR(_index-1) == KEY_U && CHR(_index-2) == KEY_Q) {
@@ -506,9 +528,16 @@ void checkCorrectVowel(vector<vector<Uint16>>& charset, int& i, int& k, const Ui
             break;
     }
     
+    //upstream issue 134: in Telex the mark keys are letters, so the unmasked k-final entries apply only
+    //to a syllable shaped like a Vietnamese k-syllable (Đắk, Lắk, Búk): "speaks", "yaks", "treks" must stay
+    if (isCorect && vInputType != vVNI && charset[i].size() > 1 && charset[i].back() == KEY_K && !isVietnameseKSyllable()) {
+        isCorect = false;
+        return;
+    }
+
     //limit mark for end consonant: "C", "T"
     if (isCorect && charset[i].size() > 1 && (IS_KEY_F(markKey) || IS_KEY_X(markKey) || IS_KEY_R(markKey))) {
-        if (charset[i][1] == KEY_C || charset[i][1] == KEY_T) {
+        if (charset[i][1] == KEY_C || charset[i][1] == KEY_T || charset[i][1] == KEY_K) {
             isCorect = false;
         } else if (charset[i].size() > 2 && (charset[i][2] == KEY_T)) {
             isCorect = false;
