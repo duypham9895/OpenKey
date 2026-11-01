@@ -879,9 +879,11 @@ void insertAOE(const Uint16& data, const bool& isCaps) {
 
 void insertW(const Uint16& data, const bool& isCaps) {
     isRestoredW = false;
-    
+
     findAndCalculateVowel();
-    
+    //saved before the ^ marks are stripped below, so a w that only removes a ^ still counts as a change
+    const Uint32 wBefore0 = TypingWord[VSI], wBefore1 = TypingWord[VSI+1];
+
     //remove ^ tone
     for (ii = VSI; ii <= VEI; ii++) {
         TypingWord[ii] &= ~TONE_MASK;
@@ -932,9 +934,21 @@ void insertW(const Uint16& data, const bool& isCaps) {
                 isChanged = false;
                 hCode = vDoNothing;
             }
-            
-            for (ii = VSI; ii < _index; ii++) {
-                hData[_index - 1 - ii] = GET(TypingWord[ii]);
+
+            if (hCode == vWillProcess && wBefore0 == TypingWord[VSI] && wBefore1 == TypingWord[VSI+1]) {
+                //the horn/breve was already there (e.g. "oă", "iơ"), so this w is a second press:
+                //undo it like a repeated mark key instead of re-applying the same mark.
+                hCode = vRestore;
+                for (ii = VSI; ii < _index; ii++) {
+                    TypingWord[ii] &= ~TONEW_MASK;
+                    hData[_index - 1 - ii] = GET(TypingWord[ii]) & ~STANDALONE_MASK;
+                }
+                isRestoredW = true;
+                tempDisableKey = true;
+            } else {
+                for (ii = VSI; ii < _index; ii++) {
+                    hData[_index - 1 - ii] = GET(TypingWord[ii]);
+                }
             }
         }
         
