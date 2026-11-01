@@ -100,3 +100,11 @@ Ddawks Lawks
 Krong Buks
 speaks
 breaks
+# undo key followed by more keys (upstream issue 141): VNI first, then Telex
+a11b
+o66n
+official
+coffee <<<<<aa
+offficial
+maxx
+ddaaang

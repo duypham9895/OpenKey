@@ -91,6 +91,12 @@ vector<Uint32> _typingStatesData;
  */
 static Uint32 KeyStates[MAX_BUFF];
 static Byte _stateIndex = 0;
+//Keys dropped from KeyStates by a "press again to undo" (vRestore in the key path), with the
+//KeyStates position they belong at. Only used to replay the raw keys when restore-if-wrong-spelling
+//fires on a word that kept going after the undo ("official", "necessary"). Cleared on any delete.
+static Uint32 _undoKeys[MAX_BUFF];
+static Byte _undoPos[MAX_BUFF];
+static Byte _undoCount = 0;
 
 static bool tempDisableKey = false;
 static int capsElem;
@@ -374,6 +380,7 @@ void insertKey(const Uint16& keyCode, const bool& isCaps, const bool& isCheckSpe
 
 void insertState(const Uint16& keyCode, const bool& isCaps) {
     if (_stateIndex >= MAX_BUFF) {
+        _undoCount = 0; //recorded positions would point at the wrong keys after the shift
         //left shift
         for (iii = 0; iii < MAX_BUFF - 1; iii++) {
             KeyStates[iii] = KeyStates[iii + 1];
@@ -490,6 +497,7 @@ void startNewSession() {
     hNCC = 0;
     tempDisableKey = false;
     _stateIndex = 0;
+    _undoCount = 0;
     _hasHandledMacro = false;
     _hasHandleQuickConsonant = false;
     _longWordHelper.clear();
@@ -1283,22 +1291,50 @@ void handleQuickTelex(const Uint16& data, const bool& isCaps) {
 }
 
 bool checkRestoreIfWrongSpelling(const int& handleCode) {
+    Byte u;
+    //an undo key followed by more keys means the user kept typing a non-Vietnamese word
+    //("off"+"icial"); an undo as the last key ("maxx", "a11") stays the literal escape it always was
+    //...unless the very next key repeats the undo key ("offf" -> "off", "offficial" -> "official"):
+    //that is the old workaround for this bug, so it keeps working
+    bool replayUndo = false;
+    if (_stateIndex + _undoCount <= MAX_BUFF) {
+        for (u = 0; u < _undoCount; u++) {
+            if (_undoPos[u] < _stateIndex &&
+                (KeyStates[_undoPos[u]] & CHAR_MASK) != (_undoKeys[u] & CHAR_MASK)) {
+                replayUndo = true;
+                break;
+            }
+        }
+    }
+    bool hasMark = false;
     for (ii = 0; ii < _index; ii++) {
         if (!IS_CONSONANT(CHR(ii)) &&
             (TypingWord[ii] & MARK_MASK || TypingWord[ii] & TONE_MASK || TypingWord[ii] & TONEW_MASK)) {
-            
-            hCode = handleCode;
-            hBPC = _index;
-            hNCC = _stateIndex;
-            for (i = 0; i < _stateIndex; i++) {
-                TypingWord[i] = KeyStates[i];
-                hData[_stateIndex - 1 - i] = TypingWord[i];
-            }
-            _index = _stateIndex;
-            return true;
+            hasMark = true;
+            break;
         }
     }
-    return false;
+    if (!hasMark && !replayUndo)
+        return false;
+    hCode = handleCode;
+    hBPC = _index;
+    Byte n = 0;
+    u = 0;
+    for (i = 0; i <= _stateIndex; i++) {
+        while (replayUndo && u < _undoCount && _undoPos[u] == i)
+            TypingWord[n++] = _undoKeys[u++];
+        if (i < _stateIndex)
+            TypingWord[n++] = KeyStates[i];
+    }
+    hNCC = n;
+    for (i = 0; i < n; i++) {
+        hData[n - 1 - i] = TypingWord[i];
+        KeyStates[i] = TypingWord[i]; //keep KeyStates aligned with the restored word
+    }
+    _stateIndex = n;
+    _index = n;
+    _undoCount = 0;
+    return true;
 }
 
 void vTempOffSpellChecking() {
@@ -1548,6 +1584,7 @@ void vKeyHandleEvent(const vKeyEvent& event,
     } else if (data == KEY_DELETE) {
         hCode = vDoNothing;
         hExt = 2; //delete
+        _undoCount = 0; //positions no longer line up with KeyStates; fall back to the old behaviour
         if (_specialChar.size() > 0) {
             _specialChar.pop_back();
             if (_specialChar.size() == 0) {
@@ -1642,6 +1679,11 @@ void vKeyHandleEvent(const vKeyEvent& event,
         if (hCode == vRestore) {
             insertKey(data, _isCaps);
             _stateIndex--;
+            //VNI undo keys are digits, which no English word contains, so VNI keeps its old behaviour
+            if (vInputType != vVNI && _undoCount < MAX_BUFF) {
+                _undoKeys[_undoCount] = KeyStates[_stateIndex];
+                _undoPos[_undoCount++] = _stateIndex;
+            }
         }
         
         //insert or replace key for macro feature
@@ -1679,6 +1721,7 @@ void vKeyHandleEvent(const vKeyEvent& event,
             _index = 0;
             tempDisableKey = false;
             _stateIndex = 0;
+            _undoCount = 0;
             hExt = 3;
             _specialChar.push_back(data | (_isCaps ? CAPS_MASK : 0));
         }
