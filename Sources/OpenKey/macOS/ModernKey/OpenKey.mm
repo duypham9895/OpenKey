@@ -711,16 +711,17 @@ extern "C" {
             TISInputSourceRef isource = TISCopyCurrentKeyboardInputSource();
             if ( isource != NULL )
             {
+                //Get rule: `languages` and its items belong to `isource`; only `isource` is ours to release
                 CFArrayRef languages = (CFArrayRef) TISGetInputSourceProperty(isource, kTISPropertyInputSourceLanguages);
-                
-                if (CFArrayGetCount(languages) > 0) {
+                BOOL isEnglish = YES; //no language list: keep Vietnamese on, as before
+                if (languages && CFArrayGetCount(languages) > 0) {
                     CFStringRef langRef = (CFStringRef)CFArrayGetValueAtIndex(languages, 0);
                     NSString *currentLanguage = (__bridge NSString *)langRef;
-                    if(![currentLanguage isLike:@"en"]){
-                        return event;
-                    }
-                    CFRelease(langRef);
-                    CFRelease(isource);
+                    isEnglish = [currentLanguage isLike:@"en"];
+                }
+                CFRelease(isource); //after the last use of langRef, which isource owns
+                if (!isEnglish) {
+                    return event;
                 }
             }
         }
