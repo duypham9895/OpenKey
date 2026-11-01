@@ -1527,6 +1527,12 @@ void vKeyHandleEvent(const vKeyEvent& event,
             _willTempOffEngine = false;
         } else if (hCode == vReplaceMaro || _hasHandleQuickConsonant) {
             _index = 0;
+            if (hCode == vReplaceMaro) {
+                // A macro replaced the word: its raw keys must not leak into the next word's
+                // restore-if-wrong-spelling (reachable since TAB macros keep _hasHandledMacro false).
+                _stateIndex = 0;
+                _undoCount = 0;
+            }
         }
         
         //insert key for macro function
@@ -1680,7 +1686,12 @@ void vKeyHandleEvent(const vKeyEvent& event,
             insertKey(data, _isCaps);
             _stateIndex--;
             //VNI undo keys are digits, which no English word contains, so VNI keeps its old behaviour
-            if (vInputType != vVNI && _undoCount < MAX_BUFF) {
+            //a third identical key after a doubled pair ("ooo", "ddd") is the old "type it three times"
+            //workaround: the pair is already in KeyStates, so there is nothing to put back
+            const bool tripled = _stateIndex >= 2 &&
+                (KeyStates[_stateIndex-1] & CHAR_MASK) == (KeyStates[_stateIndex] & CHAR_MASK) &&
+                (KeyStates[_stateIndex-2] & CHAR_MASK) == (KeyStates[_stateIndex] & CHAR_MASK);
+            if (vInputType != vVNI && !tripled && _undoCount < MAX_BUFF) {
                 _undoKeys[_undoCount] = KeyStates[_stateIndex];
                 _undoPos[_undoCount++] = _stateIndex;
             }
