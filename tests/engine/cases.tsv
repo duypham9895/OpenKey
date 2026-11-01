@@ -186,3 +186,31 @@ i141-guard-telex-maxx	-ovRestoreIfWrongSpelling=1	maxx 	max 	2
 i141-guard-telex-offf	-ovRestoreIfWrongSpelling=1	offf 	off 	2
 i141-guard-telex-offficial	-ovRestoreIfWrongSpelling=1	offficial 	official 	2
 i141-guard-telex-restore-off	-	official 	oficial 	2
+#
+# --- result review R1 (2026-11-02): regressions found by review, RED before the fix ---
+# B5 x restore-if-wrong: a macro fired by TAB left the previous field's raw keys in KeyStates,
+# so a misspelled word in the next field was restored with them prepended.
+r1-b5-tab-restore-vni	-ovInputType=1 -ovRestoreIfWrongSpelling=1 -ovMacroOnTab=1	tv|ea1 	tiếng Việt|ea1 	-
+r1-b5-tab-restore-telex	-ovRestoreIfWrongSpelling=1 -ovMacroOnTab=1	tv|eas 	tiếng Việt|eas 	-
+r1-b5-tab-restore-chain	-ovRestoreIfWrongSpelling=1 -ovMacroOnTab=1	tv|xd|eas 	tiếng Việt|xây dựng|eas 	-
+# B7: typing a doubled letter a third time is the old Telex workaround; it must still give the pair
+# (master behaviour). This also brings back master's "ddaaang" -> "đaang".
+r1-b7-tripled-o	-ovRestoreIfWrongSpelling=1	boook 	book 	-
+r1-b7-tripled-oo-good	-ovRestoreIfWrongSpelling=1	goood 	good 	-
+r1-b7-tripled-d	-ovRestoreIfWrongSpelling=1	dddo 	ddo 	-
+r1-b7-tripled-ddaaang	-ovRestoreIfWrongSpelling=1	ddaaang 	đaang 	-
+#
+# --- coverage pins added at result review (pass already; catch later edits) ---
+r1-b3-telex-onset-p	-ovCheckSpelling=0	paksw 	pắk 	-
+r1-b3-telex-onset-dr	-ovCheckSpelling=0	draksw 	drắk 	-
+r1-b3-telex-onset-kr	-ovCheckSpelling=0	kraksw 	krắk 	-
+r1-b3-telex-vowel-e-hat	-ovCheckSpelling=0	beeks 	bếk 	-
+r1-b3-vni-vowel-e-hat	-ovInputType=1 -ovCheckSpelling=0	te6k1 	tếk 	-
+# accepted side effect of the k-final entries (VNI, spell check off): any k-final takes sắc/nặng/đ
+r1-b3-vni-luk	-ovInputType=1 -ovCheckSpelling=0	luk1 	lúk 	-
+r1-b3-vni-tak	-ovInputType=1 -ovCheckSpelling=0	tak1 	ták 	-
+r1-b3-vni-dak9	-ovInputType=1 -ovCheckSpelling=0	Dak9 	Đak 	-
+# known gap, same as master: a backspace inside the word drops the B7 undo record
+r1-b7-gap-bs-midword	-ovRestoreIfWrongSpelling=1	offix<icial 	ofiicial 	3
+# known gap, same mechanism as master tv,tv: a macro right after a quote-closed macro does not fire
+r1-b4-gap-adjacent	-ovInputType=1	"test"r 	"TEST"r 	-
