@@ -1,0 +1,66 @@
+# id	options	keys	expected_text	expected_bs
+# VNI first (vInputType=1), Telex second (default). "-" = default options / skip bs check.
+#
+# --- baseline: must stay exactly as on master ---
+base-vni-viet	-ovInputType=1	vie65t nam 	việt nam 	3
+base-vni-tieng	-ovInputType=1	tie61ng Vie65t 	tiếng Việt 	6
+base-vni-nguyen	-ovInputType=1	Nguye64n	Nguyễn	4
+base-vni-duong	-ovInputType=1	d9u7o7ng2	đường	8
+base-vni-ruou	-ovInputType=1	ru7o75u	rượu	5
+base-vni-khong	-ovInputType=1	kho6ng	không	1
+base-vni-huych	-ovInputType=1	huy5ch 	huỵch 	2
+base-vni-hoa	-ovInputType=1	hoa2	hoà	2
+base-vni-qua	-ovInputType=1	qua1	quá	1
+base-vni-undo-mark	-ovInputType=1	a11	a1	-
+base-vni-macro	-ovInputType=1	tv 	tiếng Việt 	2
+base-telex-nguoi	-	nguwowif	người	6
+base-telex-duoc	-	dduowcj	được	6
+base-telex-khuou	-	khuowus	khướu	5
+base-telex-thuo	-	thuowr	thuở	4
+#
+# --- E2 / upstream issue 145: with spell check off, backspace must re-enable processing ---
+e2-vni-145	-ovInputType=1 -ovCheckSpelling=0	a11<1	á	-
+e2-telex-145	-ovCheckSpelling=0	thaaa<<aa	thâ	-
+#
+# --- E3 / upstream issue 162: backspacing into a previous word rebuilds its key states ---
+e3-vni-162	-ovInputType=1	cdime a<<4 	cdime4 	-
+e3-telex-162	-	cdime a<<x 	cdimex 	-
+e3-telex-162-restore	-ovRestoreIfWrongSpelling=1	cdime a<<x 	cdimex 	-
+#
+# --- E4 / upstream issue 216: a second w / 8 undoes the breve on "oă" ---
+e4-vni-216	-ovInputType=1	hoat88	hoat8	-
+e4-telex-216	-	hoatww	hoatw	-
+e4-telex-216-spelloff	-ovCheckSpelling=0	bloatww	bloatw	-
+#
+# --- E5 / upstream issue 313: macro key starting with a standalone w (= ư) fires. Telex only:
+#     VNI u7d already works on master. ---
+e5-telex-313	-	wd 	UD 	-
+e5-vni-313-guard	-ovInputType=1	u7d 	UD 	-
+e5-vni-thuong-macro	-ovInputType=1	thuo7ng 	LOVE 	-
+#
+# --- E1 / upstream issues 229, 133: huơ / khuơ for h and kh onsets only (Duy, option B) ---
+e1-vni-huo	-ovInputType=1	huo7	huơ	-
+e1-vni-khuo	-ovInputType=1	khuo7	khuơ	-
+e1-vni-HUO	-ovInputType=1	HUO7	HUƠ	-
+e1-telex-huo	-	huow	huơ	-
+e1-telex-khuo	-	khuow	khuơ	-
+e1-vni-guard-uo	-ovInputType=1	uo7	ươ	2
+e1-vni-guard-nguoi	-ovInputType=1	nguo7i2	người	5
+e1-vni-guard-duoc	-ovInputType=1	d9uo7c5	được	6
+e1-vni-guard-truong	-ovInputType=1	truo7ng2	trường	6
+e1-vni-guard-giuo	-ovInputType=1	giuo7	giươ	-
+e1-vni-guard-ng-onset	-ovInputType=1	nguo7n	ngươn	-
+e1-vni-guard-undo	-ovInputType=1	huo77	huo7	-
+e1-vni-guard-thuo	-ovInputType=1	thuo73	thuở	-
+e1-vni-guard-quo	-ovInputType=1	quo7	quơ	-
+e1-vni-huong-coda	-ovInputType=1	huo7ng	hương	-
+e1-vni-huong-macro	-ovInputType=1	huo7ng 	SCENT 	-
+e1-vni-huou-macro	-ovInputType=1	huo7u 	DEER 	-
+e1-telex-huong-macro	-	huowng 	SCENT 	-
+#
+# --- E6 / upstream issue 242 (Vietnamese-mode variant only): the macro key is rebuilt after
+#     backspacing into the previous word, so a fragment no longer fires a macro ---
+e6-telex-242	-	char <r 	char 	-
+e6-vni-242	-ovInputType=1	char <r 	charr 	-
+e6-telex-r-edit	-	r <x 	rồix 	-
+e6-telex-t-edit	-	t <v 	tiếng Việt 	-
