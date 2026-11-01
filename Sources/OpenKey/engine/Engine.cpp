@@ -299,11 +299,11 @@ void checkGrammar(const int& deltaBackSpace) {
     
     l = VSI;
     
-    //if N key for case: "thuơn", "ưoi", "ưom", "ưoc"
+    //if N key for case: "thuơn", "ưoi", "ưom", "ưoc"; U for "huơ" + u -> "hươu", "khuơ" + u -> "khướu"
     if (_index >= 3) {
         for (i = _index-1; i >= 0; i--) {
             if (CHR(i) == KEY_N || CHR(i) == KEY_C || CHR(i) == KEY_I ||
-                CHR(i) == KEY_M || CHR(i) == KEY_P || CHR(i) == KEY_T) {
+                CHR(i) == KEY_M || CHR(i) == KEY_P || CHR(i) == KEY_T || CHR(i) == KEY_U) {
                 if (i - 2 >= 0 && CHR(i - 1) == KEY_O && CHR(i - 2) == KEY_U) {
                     if ((TypingWord[i-1] & TONEW_MASK) ^ (TypingWord[i-2] & TONEW_MASK)) {
                         TypingWord[i - 2] |= TONEW_MASK;
@@ -915,6 +915,14 @@ void insertW(const Uint16& data, const bool& isCaps) {
                         TypingWord[VSI] |= TONEW_MASK;
                     }
                 } else if (VSI - 1 >= 0 && TypingWord[VSI - 1] == KEY_Q) {
+                    TypingWord[VSI+1] |= TONEW_MASK;
+                } else if (!vFreeMark && VSI + 2 >= _index &&
+                           ((VSI == 1 && CHR(0) == KEY_H) ||
+                            (VSI == 2 && CHR(0) == KEY_K && CHR(1) == KEY_H))) {
+                    //"huơ", "khuơ": with an h/kh onset and nothing after "uo", horn only the o.
+                    //A following coda (n, c, i, m, p, t, u) re-horns the u in checkGrammar, so
+                    //"hương", "hươu", "khướu" still come out right. Kept to h/kh on purpose (Duy,
+                    //2026-11-01): other onsets keep "ươ" and pay no extra rewrite.
                     TypingWord[VSI+1] |= TONEW_MASK;
                 } else {
                     TypingWord[VSI] |= TONEW_MASK;

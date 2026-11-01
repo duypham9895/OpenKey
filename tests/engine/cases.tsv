@@ -15,7 +15,7 @@ base-vni-undo-mark	-ovInputType=1	a11	a1	-
 base-vni-macro	-ovInputType=1	tv 	tiếng Việt 	2
 base-telex-nguoi	-	nguwowif	người	6
 base-telex-duoc	-	dduowcj	được	6
-base-telex-khuou	-	khuowus	khướu	5
+base-telex-khuou	-	khuowus	khướu	-
 base-telex-thuo	-	thuowr	thuở	4
 #
 # --- E2 / upstream issue 145: with spell check off, backspace must re-enable processing ---
@@ -57,6 +57,11 @@ e1-vni-huong-coda	-ovInputType=1	huo7ng	hương	-
 e1-vni-huong-macro	-ovInputType=1	huo7ng 	SCENT 	-
 e1-vni-huou-macro	-ovInputType=1	huo7u 	DEER 	-
 e1-telex-huong-macro	-	huowng 	SCENT 	-
+# Accepted cost of option B (Duy, 2026-11-01): with an h/kh onset, typing the horn BEFORE the coda
+# rewrites the vowel once more (+2 backspaces); the text is unchanged. master: khuowus bs=5, huo7ng bs=2.
+e1-cost-khuou	-	khuowus	khướu	7
+e1-cost-huong	-ovInputType=1	huo7ng	hương	4
+e1-cost-huong-7-last	-ovInputType=1	huong7	hương	-
 #
 # --- E6 / upstream issue 242 (Vietnamese-mode variant only): the macro key is rebuilt after
 #     backspacing into the previous word, so a fragment no longer fires a macro ---
