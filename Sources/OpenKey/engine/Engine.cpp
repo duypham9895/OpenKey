@@ -459,6 +459,18 @@ void restoreLastTypingState() {
                 if (vCheckSpelling)
                     checkSpelling();
             }
+            if (vUseMacro) {
+                //the macro key must describe the word now being edited, not whatever was typed
+                //before the backspace; otherwise "char" + space + backspace + "r" fires macro "r"
+                hMacroKey.clear();
+                if (_index > 0) {
+                    for (i = 0; i < _index; i++) {
+                        hMacroKey.push_back(TypingWord[i]);
+                    }
+                } else if (_specialChar.size() > 0) {
+                    hMacroKey = _specialChar;
+                }
+            }
         }
     }
 }
