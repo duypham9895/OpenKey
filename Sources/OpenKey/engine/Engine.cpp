@@ -91,6 +91,12 @@ vector<Uint32> _typingStatesData;
  */
 static Uint32 KeyStates[MAX_BUFF];
 static Byte _stateIndex = 0;
+//Keys dropped from KeyStates by a "press again to undo" (vRestore in the key path), with the
+//KeyStates position they belong at. Only used to replay the raw keys when restore-if-wrong-spelling
+//fires on a word that kept going after the undo ("official", "necessary"). Cleared on any delete.
+static Uint32 _undoKeys[MAX_BUFF];
+static Byte _undoPos[MAX_BUFF];
+static Byte _undoCount = 0;
 
 static bool tempDisableKey = false;
 static int capsElem;
@@ -153,7 +159,13 @@ bool isWordBreak(const vKeyEvent& event, const vKeyEventState& state, const Uint
     return false;
 }
 
+// upstream issue 200: 1 = TAB also expands a macro. Defined here, so a host that never sets it
+// needs no change. Default 0 keeps TAB as on master.
+int vMacroOnTab = 0;
+
 bool isMacroBreakCode(const int& data) {
+    if (vMacroOnTab && data == KEY_TAB)
+        return true;
     for (i = 0; i < _macroBreakCode.size(); i++) {
         if (_macroBreakCode[i] == data) {
             return true;
@@ -368,6 +380,7 @@ void insertKey(const Uint16& keyCode, const bool& isCaps, const bool& isCheckSpe
 
 void insertState(const Uint16& keyCode, const bool& isCaps) {
     if (_stateIndex >= MAX_BUFF) {
+        _undoCount = 0; //recorded positions would point at the wrong keys after the shift
         //left shift
         for (iii = 0; iii < MAX_BUFF - 1; iii++) {
             KeyStates[iii] = KeyStates[iii + 1];
@@ -484,9 +497,32 @@ void startNewSession() {
     hNCC = 0;
     tempDisableKey = false;
     _stateIndex = 0;
+    _undoCount = 0;
     _hasHandledMacro = false;
     _hasHandleQuickConsonant = false;
     _longWordHelper.clear();
+}
+
+//upstream issue 134 (Telex): the word is <onset><one vowel>k as in the Central Highlands names that use k
+//(Đắk, Lắk, Búk, Pắk, M'Đrắk): onset b, d/đ, l, p, dr or kr; vowel a/ă/â, u/ư, or e only as "ê"
+static bool isVietnameseKSyllable() {
+    static const char* const onsets[] = {"b", "d", "l", "p", "dr", "kr"};
+    if (_index < 2 || CHR(_index-1) != KEY_K)
+        return false;
+    const Uint16 vowel = CHR(_index-2);
+    if (!(vowel == KEY_A || vowel == KEY_U || (vowel == KEY_E && (TypingWord[_index-2] & TONE_MASK))))
+        return false;
+    std::string onset;
+    for (int n = 0; n < _index-2; n++) {
+        const char c = static_cast<char>(keyCodeToCharacter(CHR(n)));
+        if (c < 'a' || c > 'z')
+            return false;
+        onset += c;
+    }
+    for (const char* o : onsets)
+        if (onset == o)
+            return true;
+    return false;
 }
 
 void checkCorrectVowel(vector<vector<Uint16>>& charset, int& i, int& k, const Uint16& markKey) {
@@ -506,9 +542,16 @@ void checkCorrectVowel(vector<vector<Uint16>>& charset, int& i, int& k, const Ui
             break;
     }
     
+    //upstream issue 134: in Telex the mark keys are letters, so the unmasked k-final entries apply only
+    //to a syllable shaped like a Vietnamese k-syllable (Đắk, Lắk, Búk): "speaks", "yaks", "treks" must stay
+    if (isCorect && vInputType != vVNI && charset[i].size() > 1 && charset[i].back() == KEY_K && !isVietnameseKSyllable()) {
+        isCorect = false;
+        return;
+    }
+
     //limit mark for end consonant: "C", "T"
     if (isCorect && charset[i].size() > 1 && (IS_KEY_F(markKey) || IS_KEY_X(markKey) || IS_KEY_R(markKey))) {
-        if (charset[i][1] == KEY_C || charset[i][1] == KEY_T) {
+        if (charset[i][1] == KEY_C || charset[i][1] == KEY_T || charset[i][1] == KEY_K) {
             isCorect = false;
         } else if (charset[i].size() > 2 && (charset[i][2] == KEY_T)) {
             isCorect = false;
@@ -1248,22 +1291,50 @@ void handleQuickTelex(const Uint16& data, const bool& isCaps) {
 }
 
 bool checkRestoreIfWrongSpelling(const int& handleCode) {
+    Byte u;
+    //an undo key followed by more keys means the user kept typing a non-Vietnamese word
+    //("off"+"icial"); an undo as the last key ("maxx", "a11") stays the literal escape it always was
+    //...unless the very next key repeats the undo key ("offf" -> "off", "offficial" -> "official"):
+    //that is the old workaround for this bug, so it keeps working
+    bool replayUndo = false;
+    if (_stateIndex + _undoCount <= MAX_BUFF) {
+        for (u = 0; u < _undoCount; u++) {
+            if (_undoPos[u] < _stateIndex &&
+                (KeyStates[_undoPos[u]] & CHAR_MASK) != (_undoKeys[u] & CHAR_MASK)) {
+                replayUndo = true;
+                break;
+            }
+        }
+    }
+    bool hasMark = false;
     for (ii = 0; ii < _index; ii++) {
         if (!IS_CONSONANT(CHR(ii)) &&
             (TypingWord[ii] & MARK_MASK || TypingWord[ii] & TONE_MASK || TypingWord[ii] & TONEW_MASK)) {
-            
-            hCode = handleCode;
-            hBPC = _index;
-            hNCC = _stateIndex;
-            for (i = 0; i < _stateIndex; i++) {
-                TypingWord[i] = KeyStates[i];
-                hData[_stateIndex - 1 - i] = TypingWord[i];
-            }
-            _index = _stateIndex;
-            return true;
+            hasMark = true;
+            break;
         }
     }
-    return false;
+    if (!hasMark && !replayUndo)
+        return false;
+    hCode = handleCode;
+    hBPC = _index;
+    Byte n = 0;
+    u = 0;
+    for (i = 0; i <= _stateIndex; i++) {
+        while (replayUndo && u < _undoCount && _undoPos[u] == i)
+            TypingWord[n++] = _undoKeys[u++];
+        if (i < _stateIndex)
+            TypingWord[n++] = KeyStates[i];
+    }
+    hNCC = n;
+    for (i = 0; i < n; i++) {
+        hData[n - 1 - i] = TypingWord[i];
+        KeyStates[i] = TypingWord[i]; //keep KeyStates aligned with the restored word
+    }
+    _stateIndex = n;
+    _index = n;
+    _undoCount = 0;
+    return true;
 }
 
 void vTempOffSpellChecking() {
@@ -1325,6 +1396,53 @@ bool checkQuickConsonant() {
     }
     return false;
 }
+
+//upstream issue 279: a macro also fires when its key is wrapped in quotes, e.g. "test", 'r' or `tv`.
+//Only quotes are openers: ' and " (KEY_QUOTE) and unshifted ` (KEY_BACKQUOTE). Parentheses, digits and
+//the keys / - = . \ ; [ ] are never stripped, because macro keys such as "9x", "-v", ".vn" or "/s"
+//start with them and Telex uses [ ] as letters.
+static Uint32 macroOpenDelimiter(const Uint32& k) { //returns the matching closing key, or 0
+    if (k & CHAR_CODE_MASK)
+        return 0;
+    const Uint32 c = k & CHAR_MASK;
+    if (c == KEY_QUOTE)
+        return k & (CHAR_MASK | CAPS_MASK); //' closes ', " closes "
+    if (c == KEY_BACKQUOTE && !(k & CAPS_MASK))
+        return KEY_BACKQUOTE;
+    return 0;
+}
+
+//Tries the full key first, so a macro whose own key starts with a quote still wins; then the key
+//without its opening quote. allowClose: also strip a matching closing quote at the end and put it
+//back after the macro text. Valid at SPACE and at break keys, because the host re-sends the trigger
+//key in both cases, so only the deleted closing quote has to be restored.
+static bool findMacroWrapped(vector<Uint32>& key, vector<Uint32>& out, Byte& bpc, const bool& allowClose) {
+    const vector<Uint32> full = key; //findMacro converts its argument in place
+    if (findMacro(key, out)) {
+        bpc = static_cast<Byte>(key.size());
+        return true;
+    }
+    if (full.size() < 2)
+        return false;
+    const Uint32 close = macroOpenDelimiter(full[0]);
+    if (close == 0)
+        return false;
+    vector<Uint32> inner(full.begin() + 1, full.end());
+    if (findMacro(inner, out)) {
+        bpc = static_cast<Byte>(inner.size());
+        return true;
+    }
+    const Uint32 last = full.back();
+    if (allowClose && full.size() >= 3 && !(last & CHAR_CODE_MASK) && (last & (CHAR_MASK | CAPS_MASK)) == close) {
+        inner.assign(full.begin() + 1, full.end() - 1);
+        if (findMacro(inner, out)) {
+            bpc = static_cast<Byte>(inner.size() + 1);
+            out.push_back(close);
+            return true;
+        }
+    }
+    return false;
+}
 /*==========================================================================================================*/
 
 void vEnglishMode(const vKeyEventState& state, const Uint16& data, const bool& isCaps, const bool& otherControlKey) {
@@ -1332,10 +1450,9 @@ void vEnglishMode(const vKeyEventState& state, const Uint16& data, const bool& i
     if (state == vKeyEventState::MouseDown || (otherControlKey && !isCaps)) {
         hMacroKey.clear();
         _willTempOffEngine = false;
-    } else if (data == KEY_SPACE) {
-        if (!_hasHandledMacro && findMacro(hMacroKey, hMacroData)) {
+    } else if (data == KEY_SPACE || (vMacroOnTab && data == KEY_TAB)) {
+        if (!_hasHandledMacro && findMacroWrapped(hMacroKey, hMacroData, hBPC, true)) {
             hCode = vReplaceMaro;
-            hBPC = (Byte)hMacroKey.size();
         }
         hMacroKey.clear();
         _willTempOffEngine = false;
@@ -1372,11 +1489,13 @@ void vKeyHandleEvent(const vKeyEvent& event,
         hExt = 1; //word break
         
         //check macro feature
-        if (vUseMacro && isMacroBreakCode(data) && !_hasHandledMacro && findMacro(hMacroKey, hMacroData)) {
+        if (vUseMacro && isMacroBreakCode(data) && !_hasHandledMacro && findMacroWrapped(hMacroKey, hMacroData, hBPC, true)) {
             hCode = vReplaceMaro;
-            hBPC = (Byte)hMacroKey.size();
-            _hasHandledMacro = true;
-        } else if ((vQuickStartConsonant || vQuickEndConsonant) && !tempDisableKey && isMacroBreakCode(data)) {
+            // TAB clears hMacroKey below, so nothing is left to expand twice; keeping the flag set
+            // would block the macro in the next form field ("xd<TAB>xd<TAB>").
+            _hasHandledMacro = data != KEY_TAB;
+        } else if ((vQuickStartConsonant || vQuickEndConsonant) && !tempDisableKey && isMacroBreakCode(data)
+                   && data != KEY_TAB) { // TAB only expands macros, it never completes a consonant
             checkQuickConsonant();
         } else if (vRestoreIfWrongSpelling && isWordBreak(event, state, data)) { //restore key if wrong spelling with break-key
             if (!tempDisableKey && vCheckSpelling) {
@@ -1408,6 +1527,13 @@ void vKeyHandleEvent(const vKeyEvent& event,
             _willTempOffEngine = false;
         } else if (hCode == vReplaceMaro || _hasHandleQuickConsonant) {
             _index = 0;
+            if (hCode == vReplaceMaro) {
+                // A macro replaced the word: its raw keys must not leak into the next word's
+                // restore-if-wrong-spelling. Reachable through every non-space macro trigger
+                // ("tv.eas." on master too), not only TAB, so keep this reset for all of them.
+                _stateIndex = 0;
+                _undoCount = 0;
+            }
         }
         
         //insert key for macro function
@@ -1431,9 +1557,8 @@ void vKeyHandleEvent(const vKeyEvent& event,
         if (!tempDisableKey && vCheckSpelling) {
             checkSpelling(true); //force check spelling
         }
-        if (vUseMacro && !_hasHandledMacro && findMacro(hMacroKey, hMacroData)) { //macro
+        if (vUseMacro && !_hasHandledMacro && findMacroWrapped(hMacroKey, hMacroData, hBPC, true)) { //macro
             hCode = vReplaceMaro;
-            hBPC = (Byte)hMacroKey.size();
             _spaceCount++;
             _hasHandledMacro = true;
         } else if ((vQuickStartConsonant || vQuickEndConsonant) && !tempDisableKey && checkQuickConsonant()) {
@@ -1466,6 +1591,7 @@ void vKeyHandleEvent(const vKeyEvent& event,
     } else if (data == KEY_DELETE) {
         hCode = vDoNothing;
         hExt = 2; //delete
+        _undoCount = 0; //positions no longer line up with KeyStates; fall back to the old behaviour
         if (_specialChar.size() > 0) {
             _specialChar.pop_back();
             if (_specialChar.size() == 0) {
@@ -1560,6 +1686,16 @@ void vKeyHandleEvent(const vKeyEvent& event,
         if (hCode == vRestore) {
             insertKey(data, _isCaps);
             _stateIndex--;
+            //VNI undo keys are digits, which no English word contains, so VNI keeps its old behaviour
+            //a third identical key after a doubled pair ("ooo", "ddd") is the old "type it three times"
+            //workaround: the pair is already in KeyStates, so there is nothing to put back
+            const bool tripled = vInputType != vVNI && _stateIndex >= 2 &&
+                (KeyStates[_stateIndex-1] & CHAR_MASK) == (KeyStates[_stateIndex] & CHAR_MASK) &&
+                (KeyStates[_stateIndex-2] & CHAR_MASK) == (KeyStates[_stateIndex] & CHAR_MASK);
+            if (vInputType != vVNI && !tripled && _undoCount < MAX_BUFF) {
+                _undoKeys[_undoCount] = KeyStates[_stateIndex];
+                _undoPos[_undoCount++] = _stateIndex;
+            }
         }
         
         //insert or replace key for macro feature
@@ -1597,6 +1733,7 @@ void vKeyHandleEvent(const vKeyEvent& event,
             _index = 0;
             tempDisableKey = false;
             _stateIndex = 0;
+            _undoCount = 0;
             hExt = 3;
             _specialChar.push_back(data | (_isCaps ? CAPS_MASK : 0));
         }

@@ -1,5 +1,5 @@
-# Keystroke sequences for `run.sh compare`. Each line runs under 8 option sets (VNI and Telex)
-# with and without a trailing space. VNI sequences first.
+# Keystroke sequences for `run.sh compare`. Each line runs under every option set in run.sh
+# (VNI, Telex, English mode, TAB macro) with and without a trailing space. VNI sequences first.
 vie65t nam
 tie61ng Vie65t
 Nguye64n
@@ -44,6 +44,25 @@ char <r
 r <1
 a11<1
 tha666<<66
+# quotes, parens, TAB ('|'), Caps Lock ('^'), k-finals (VNI)
+"test"
+'r'
+`tv`
+(test)
+(tv).
+x = "r"
+( <test
+xd|
+test|
+vie65t|nam
+^vie65t^ nam
+^9^test
+^9^ <test
+^ta6m^
+d9ak81 Lak81
+Dak981 Lak81
+Kro6ng Buk1
+d9a81k
 vieetj nam
 tieengs Vieejt
 nguwowif
@@ -68,3 +87,24 @@ t <v
 r <x
 thaaa<<aa
 tv
+# quotes, parens, TAB ('|'), Caps Lock ('^'), k-finals (Telex)
+"tv"
+x = "r"
+(tv)
+xd|
+vieetj|nam
+^vieetj^ nam
+^taam^
+ddawks lawks
+Ddawks Lawks
+Krong Buks
+speaks
+breaks
+# undo key followed by more keys (upstream issue 141): VNI first, then Telex
+a11b
+o66n
+official
+coffee <<<<<aa
+offficial
+maxx
+ddaaang

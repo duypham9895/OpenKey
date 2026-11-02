@@ -83,3 +83,134 @@ e6-vni-242	-ovInputType=1	char <r 	charr 	-
 # a macro, so "r" -> rồi, then backspace + x gives "rồix", not "rỗi". master gave "rồĩ".
 e6-telex-r-edit	-	r <x 	rồix 	-
 e6-telex-t-edit	-	t <v 	tiếng Việt 	-
+#
+# --- upstream issue 134: k-final syllables in Central Highlands names (Đắk Lắk, Krông Búk),
+#     spell check OFF. VNI first, then Telex. Telex applies only to <onset><one vowel>k with
+#     onset b, d/đ, l, p, dr, kr (variant C, Duy 2026-11-01), so English words stay raw ---
+i134-vni-dak	-ovInputType=1 -ovCheckSpelling=0	d9ak81 	đắk 	-
+i134-vni-daklak	-ovInputType=1 -ovCheckSpelling=0	Dak981 Lak81 	Đắk Lắk 	-
+i134-vni-krongbuk	-ovInputType=1 -ovCheckSpelling=0	Kro6ng Buk1 	Krông Búk 	-
+i134-telex-dakdws	-ovCheckSpelling=0	dakdws 	đắk 	-
+i134-telex-laksw	-ovCheckSpelling=0	laksw 	lắk 	-
+i134-telex-buks	-ovCheckSpelling=0	buks 	búk 	-
+i134-telex-daklak	-ovCheckSpelling=0	Ddawks Lawks 	Đắk Lắk 	-
+# Guards, same as master: huyền/hỏi/ngã never go on a k-final; English words keep their letters.
+i134-vni-tak-huyen	-ovInputType=1 -ovCheckSpelling=0	tak2 	tak2 	-
+i134-telex-speaks	-ovCheckSpelling=0	speaks 	speaks 	-
+i134-telex-leaks	-ovCheckSpelling=0	leaks 	leaks 	-
+i134-telex-breaks	-ovCheckSpelling=0	breaks 	breaks 	-
+i134-telex-treks	-ovCheckSpelling=0	treks 	treks 	-
+i134-telex-yaks	-ovCheckSpelling=0	yaks 	yaks 	-
+i134-telex-oaks	-ovCheckSpelling=0	oaks 	oaks 	-
+# Spell check ON is unchanged from master.
+i134-vni-spellon-dak	-ovInputType=1	d9ak81 	đak81 	-
+i134-vni-spellon-daklak	-ovInputType=1	Dak981 Lak81 	Dak981 Lak81 	-
+i134-vni-spellon-krongbuk	-ovInputType=1	Kro6ng Buk1 	Kro6ng Buk1 	-
+i134-telex-spellon-dakdws	-	dakdws 	dakdws 	-
+i134-telex-spellon-daklak	-	Ddawks Lawks 	Đăks Lăks 	-
+# Accepted cost (Duy, 2026-11-01, Q2b): in Telex with spell check off, the rare English word
+# "laks" becomes "lák" (master kept "laks"). Measured: 15 English words in all (roots lak, dak,
+# duk, Lakshmi, bukshi).
+i134-cost-telex-laks	-ovCheckSpelling=0	laks 	lák 	-
+# Known gaps, pinned so a change is noticed: ek/uk with a hat or horn stay raw (no êk/ưk entry
+# reaches them; c-final converts), and there is no "ok" entry at all.
+i134-gap-vni-ek	-ovInputType=1 -ovCheckSpelling=0	ek61 	ek61 	-
+i134-gap-vni-uk	-ovInputType=1 -ovCheckSpelling=0	uk71 	uk71 	-
+i134-gap-vni-ok	-ovInputType=1 -ovCheckSpelling=0	ok1 	ok1 	-
+#
+# --- upstream issue 279: a macro fires when its key is wrapped in quotes ' " ` (QUOTES ONLY,
+#     Duy 2026-11-01, Q3a/6 B). ' and " are break keys, so the macro fires on the closing quote
+#     itself; ` is not, so it fires on SPACE / a break key and the closing ` is kept.
+#     Accepted (Q3/6 A): this also fires in code (x = "r") and in English mode. VNI first. ---
+i279-vni-dq-test	-ovInputType=1	"test" 	"TEST" 	4
+i279-vni-sq-test	-ovInputType=1	'test' 	'TEST' 	4
+i279-vni-bq-test	-ovInputType=1	`test` 	`TEST` 	5
+i279-vni-dq-tv	-ovInputType=1	"tv"	"tiếng Việt"	2
+i279-vni-sq-r	-ovInputType=1	'r'	'rồi'	1
+i279-vni-code-r	-ovInputType=1	x = "r"	x = "rồi"	1
+i279-vni-bq-tv-dot	-ovInputType=1	`tv`. 	`tiếng Việt`. 	3
+i279-english-sq-r	-ovLanguage=0	'r' 	'rồi' 	2
+i279-telex-dq-tv	-	"tv"	"tiếng Việt"	2
+i279-telex-sq-r	-	'r'	'rồi'	1
+# Guards, same as master: parentheses are NOT delimiters (dropped from this fix, Duy Q3a/6 B),
+# a quote inside a word is not an opener, and a call like f("r") stays as typed.
+i279-guard-vni-paren	-ovInputType=1	(test) 	(test) 	0
+i279-guard-vni-paren-bs	-ovInputType=1	( <test 	(test 	1
+i279-guard-vni-caps9	-ovInputType=1	^9^ <test 	9test 	1
+i279-guard-vni-caps9-paren	-ovInputType=1	^9^ (<<test 	9test 	2
+i279-guard-vni-dont	-ovInputType=1	don't 	don't 	0
+i279-guard-vni-its	-ovInputType=1	it's 	it's 	0
+i279-guard-vni-call	-ovInputType=1	f("r") 	f("r") 	0
+i279-guard-telex-dont	-	don't 	don't 	0
+i279-guard-telex-call	-	f("r") 	f("r") 	0
+#
+# --- upstream issue 200: TAB expands a macro, only with vMacroOnTab=1 (default 0). '|' = TAB.
+#     The host re-sends the TAB after the macro, as it does for SPACE. Option off = master. ---
+i200-vni-on	-ovInputType=1 -ovMacroOnTab=1	xd|	xây dựng|	2
+i200-vni-two-fields	-ovInputType=1 -ovMacroOnTab=1	xd|xd|	xây dựng|xây dựng|	4
+i200-vni-then-word	-ovInputType=1 -ovMacroOnTab=1	xd|tv 	xây dựng|tiếng Việt 	4
+i200-vni-open-quote	-ovInputType=1 -ovMacroOnTab=1	"xd|	"xây dựng|	2
+i200-english-on	-ovLanguage=0 -ovMacroOnTab=1	xd|	xây dựng|	2
+i200-english-two-fields	-ovLanguage=0 -ovMacroOnTab=1	xd|xd|	xây dựng|xây dựng|	4
+i200-telex-on	-ovMacroOnTab=1	xd|	xây dựng|	2
+i200-vni-tab-then-space	-ovInputType=1 -ovMacroOnTab=1	xd| 	xây dựng| 	2
+# guards: the closing quote already expanded the macro, so TAB must not expand it again;
+#     no macro, macros off, option off and quick consonants stay as on master.
+i200-guard-vni-closed-quote	-ovInputType=1 -ovMacroOnTab=1	"xd"|	"xây dựng"|	2
+i200-guard-vni-no-macro	-ovInputType=1 -ovMacroOnTab=1	ab|	ab|	0
+i200-guard-vni-macro-off	-ovInputType=1 -ovUseMacro=0 -ovMacroOnTab=1	xd|	xd|	0
+i200-guard-vni-option-off	-ovInputType=1	xd|	xd|	0
+i200-guard-vni-quickend	-ovInputType=1 -ovQuickEndConsonant=1 -ovMacroOnTab=1	nhah|	nhah|	0
+i200-guard-english-option-off	-ovLanguage=0	xd|	xd|	0
+i200-guard-telex-option-off	-	xd|	xd|	0
+#
+# --- upstream issue 141: Telex + restore-if-wrong-spelling drops a repeated key that was an undo
+#     ("official" -> "oficial"). Telex only; VNI undo keys are digits, so VNI stays as on master. ---
+# VNI guards first: restore on, an undo key followed by more keys keeps master behaviour.
+i141-guard-vni-viet	-ovInputType=1 -ovRestoreIfWrongSpelling=1	vie65t nam 	việt nam 	3
+i141-guard-vni-nguoi	-ovInputType=1 -ovRestoreIfWrongSpelling=1	nguo7i2 	người 	5
+i141-guard-vni-undo-then-key	-ovInputType=1 -ovRestoreIfWrongSpelling=1	a11b 	a1b 	2
+i141-guard-vni-undo-hat	-ovInputType=1 -ovRestoreIfWrongSpelling=1	o66n 	o6n 	2
+i141-telex-official	-ovRestoreIfWrongSpelling=1	official 	official 	9
+i141-telex-necessary	-ovRestoreIfWrongSpelling=1	necessary 	necessary 	13
+i141-telex-coffee	-ovRestoreIfWrongSpelling=1	coffee 	coffee 	7
+i141-telex-different	-ovRestoreIfWrongSpelling=1	different 	different 	10
+i141-telex-missing	-ovRestoreIfWrongSpelling=1	missing 	missing 	8
+# backspace back into a restored word, then type on: same text as typing "coaa " / "oaa " fresh.
+i141-telex-bs-coffee	-ovRestoreIfWrongSpelling=1	coffee <<<<<aa 	coaa 	-
+i141-telex-bs-official	-ovRestoreIfWrongSpelling=1	official <<<<<<<<aa 	oaa 	-
+# guards: an undo as the last key stays the literal escape it always was, a tripled key still
+#     works as the old workaround, and restore off is untouched.
+i141-guard-telex-off	-ovRestoreIfWrongSpelling=1	off 	of 	2
+i141-guard-telex-maxx	-ovRestoreIfWrongSpelling=1	maxx 	max 	2
+i141-guard-telex-offf	-ovRestoreIfWrongSpelling=1	offf 	off 	2
+i141-guard-telex-offficial	-ovRestoreIfWrongSpelling=1	offficial 	official 	2
+i141-guard-telex-restore-off	-	official 	oficial 	2
+#
+# --- result review R1 (2026-11-02): regressions found by review, RED before the fix ---
+# B5 x restore-if-wrong: a macro fired by TAB left the previous field's raw keys in KeyStates,
+# so a misspelled word in the next field was restored with them prepended.
+r1-b5-tab-restore-vni	-ovInputType=1 -ovRestoreIfWrongSpelling=1 -ovMacroOnTab=1	tv|ea1 	tiếng Việt|ea1 	-
+r1-b5-tab-restore-telex	-ovRestoreIfWrongSpelling=1 -ovMacroOnTab=1	tv|eas 	tiếng Việt|eas 	-
+r1-b5-tab-restore-chain	-ovRestoreIfWrongSpelling=1 -ovMacroOnTab=1	tv|xd|eas 	tiếng Việt|xây dựng|eas 	-
+# B7: typing a doubled letter a third time is the old Telex workaround; it must still give the pair
+# (master behaviour). This also brings back master's "ddaaang" -> "đaang".
+r1-b7-tripled-o	-ovRestoreIfWrongSpelling=1	boook 	book 	-
+r1-b7-tripled-oo-good	-ovRestoreIfWrongSpelling=1	goood 	good 	-
+r1-b7-tripled-d	-ovRestoreIfWrongSpelling=1	dddo 	ddo 	-
+r1-b7-tripled-ddaaang	-ovRestoreIfWrongSpelling=1	ddaaang 	đaang 	-
+#
+# --- coverage pins added at result review (pass already; catch later edits) ---
+r1-b3-telex-onset-p	-ovCheckSpelling=0	paksw 	pắk 	-
+r1-b3-telex-onset-dr	-ovCheckSpelling=0	draksw 	drắk 	-
+r1-b3-telex-onset-kr	-ovCheckSpelling=0	kraksw 	krắk 	-
+r1-b3-telex-vowel-e-hat	-ovCheckSpelling=0	beeks 	bếk 	-
+r1-b3-vni-vowel-e-hat	-ovInputType=1 -ovCheckSpelling=0	te6k1 	tếk 	-
+# accepted side effect of the k-final entries (VNI, spell check off): any k-final takes sắc/nặng/đ
+r1-b3-vni-luk	-ovInputType=1 -ovCheckSpelling=0	luk1 	lúk 	-
+r1-b3-vni-tak	-ovInputType=1 -ovCheckSpelling=0	tak1 	ták 	-
+r1-b3-vni-dak9	-ovInputType=1 -ovCheckSpelling=0	Dak9 	Đak 	-
+# known gap, same as master: a backspace inside the word drops the B7 undo record
+r1-b7-gap-bs-midword	-ovRestoreIfWrongSpelling=1	offix<icial 	ofiicial 	3
+# known gap, same mechanism as master tv,tv: a macro right after a quote-closed macro does not fire
+r1-b4-gap-adjacent	-ovInputType=1	"test"r 	"TEST"r 	-

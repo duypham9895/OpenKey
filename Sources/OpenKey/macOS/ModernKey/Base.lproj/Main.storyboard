@@ -1395,6 +1395,17 @@
                                                 <action selector="onAutoCapsMacro:" target="XfG-lQ-9wD" id="JEM-sI-sPt"/>
                                             </connections>
                                         </button>
+                                        <button toolTip="Gõ tắt cả khi nhấn Tab, không chỉ Space/Enter. VD: xd + Tab → xây dựng (phím Tab vẫn được gửi đi)" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="mTb-0n-T4b">
+                                            <rect key="frame" x="243" y="57" width="262" height="18"/>
+                                            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                            <buttonCell key="cell" type="check" title="Gõ tắt khi nhấn phím Tab" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="mTc-0n-T4b">
+                                                <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                                <font key="font" metaFont="system"/>
+                                            </buttonCell>
+                                            <connections>
+                                                <action selector="onMacroOnTab:" target="XfG-lQ-9wD" id="mTd-0n-T4b"/>
+                                            </connections>
+                                        </button>
                                         <button toolTip="Bấm vào đây để cấu hình bảng gõ tắt" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="0B3-JF-s8a">
                                             <rect key="frame" x="14" y="48" width="122" height="32"/>
                                             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
@@ -1682,6 +1693,7 @@
                     <connections>
                         <outlet property="AllowZWJF" destination="uOQ-qL-V9O" id="Jqs-5h-yVt"/>
                         <outlet property="AutoCapsMacro" destination="74U-4J-gv7" id="VfS-OM-Xg9"/>
+                        <outlet property="MacroOnTab" destination="mTb-0n-T4b" id="mTe-0n-T4b"/>
                         <outlet property="AutoRememberSwitchKey" destination="YGb-a8-1Lb" id="uux-4i-1Hw"/>
                         <outlet property="CheckNewVersionButton" destination="ZuJ-Ke-7Qg" id="YR5-LD-gFA"/>
                         <outlet property="CheckNewVersionOnStartup" destination="oZr-h6-YZJ" id="kPW-tt-B1L"/>

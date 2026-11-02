@@ -101,6 +101,7 @@ extern "C" {
         LOAD_DATA(vUseMacro, UseMacro);
         LOAD_DATA(vUseMacroInEnglishMode, UseMacroInEnglishMode);
         LOAD_DATA(vAutoCapsMacro, vAutoCapsMacro);
+        LOAD_DATA(vMacroOnTab, vMacroOnTab);
         LOAD_DATA(vSendKeyStepByStep, SendKeyStepByStep);
         LOAD_DATA(vUseSmartSwitchKey, UseSmartSwitchKey);
         LOAD_DATA(vUpperCaseFirstChar, UpperCaseFirstChar);
@@ -179,12 +180,31 @@ extern "C" {
     }
 
     BOOL isSpotlightVisible() {
+        // Only treat Spotlight as active when its window is ACTUALLY visible and on top,
+        // not merely present on screen. A closed/fading Spotlight window can linger in the
+        // window list with alpha 0; using it there makes OpenKey wrongly switch to the
+        // selection-replacement path in other apps, which duplicates characters. We require:
+        //  - alpha > 0 (window is really being drawn, not mid fade-out / stale)
+        //  - window layer > 0 (Spotlight's panel floats above normal app windows)
         NSArray *windows = CFBridgingRelease(CGWindowListCopyWindowInfo(kCGWindowListOptionOnScreenOnly | kCGWindowListExcludeDesktopElements,
                                                                         kCGNullWindowID));
         for (NSDictionary *window in windows) {
-            if ([[window objectForKey:(__bridge NSString *)kCGWindowOwnerName] isEqualToString:@"Spotlight"]) {
-                return true;
-            }
+            if (![[window objectForKey:(__bridge NSString *)kCGWindowOwnerName] isEqualToString:@"Spotlight"])
+                continue;
+
+            // Skip windows that are not actually being drawn (alpha == 0 => stale/fading).
+            NSNumber* alpha = [window objectForKey:(__bridge NSString *)kCGWindowAlpha];
+            if (alpha != nil && [alpha doubleValue] <= 0.0)
+                continue;
+
+            // Spotlight's search field floats above normal app windows (layer > 0).
+            // Leftover / background Spotlight layers sit at the normal window level (0)
+            // or below; only the actual floating search panel should count.
+            NSNumber* layer = [window objectForKey:(__bridge NSString *)kCGWindowLayer];
+            if (layer != nil && [layer intValue] <= 0)
+                continue;
+
+            return true;
         }
         return false;
     }
@@ -373,7 +393,9 @@ extern "C" {
         CGEventTapPostEvent(_proxy, eventBackSpaceDown);
         CGEventTapPostEvent(_proxy, eventBackSpaceUp);
         
-        if (IS_DOUBLE_CODE(vCodeTable)) { //VNI or Unicode Compound
+        //_syncKey can be shorter than the engine's backspace count (it is host-side bookkeeping);
+        //back()/pop_back() on an empty vector is undefined behaviour
+        if (IS_DOUBLE_CODE(vCodeTable) && !_syncKey.empty()) { //VNI or Unicode Compound
             if (_syncKey.back() > 1) {
                 if (!(vCodeTable == 3 && containUnicodeCompoundApp(FRONT_APP))) {
                     CGEventTapPostEvent(_proxy, eventBackSpaceDown);
@@ -395,7 +417,9 @@ extern "C" {
         CGEventTapPostEvent(_proxy, eventVkeyDown);
         CGEventTapPostEvent(_proxy, eventVkeyUp);
         
-        if (IS_DOUBLE_CODE(vCodeTable)) { //VNI or Unicode Compound
+        //_syncKey can be shorter than the engine's backspace count (it is host-side bookkeeping);
+        //back()/pop_back() on an empty vector is undefined behaviour
+        if (IS_DOUBLE_CODE(vCodeTable) && !_syncKey.empty()) { //VNI or Unicode Compound
             if (_syncKey.back() > 1) {
                 if (!(vCodeTable == 3 && containUnicodeCompoundApp(FRONT_APP))) {
                     CGEventTapPostEvent(_proxy, eventVkeyDown);
@@ -678,8 +702,7 @@ extern "C" {
 
         // Also check correct event hooked
         if ((type != kCGEventKeyDown) && (type != kCGEventKeyUp) &&
-            (type != kCGEventLeftMouseDown) && (type != kCGEventRightMouseDown) &&
-            (type != kCGEventLeftMouseDragged) && (type != kCGEventRightMouseDragged))
+            (type != kCGEventLeftMouseDown) && (type != kCGEventRightMouseDown))
             return event;
         
         _proxy = proxy;
@@ -701,7 +724,7 @@ extern "C" {
         }
         
         //handle mouse
-        if (type == kCGEventLeftMouseDown || type == kCGEventRightMouseDown || type == kCGEventLeftMouseDragged || type == kCGEventRightMouseDragged) {
+        if (type == kCGEventLeftMouseDown || type == kCGEventRightMouseDown) {
             RequestNewSession();
             return event;
         }

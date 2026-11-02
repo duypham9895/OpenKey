@@ -60,6 +60,7 @@
 
 @property (weak) IBOutlet NSButton *TempOffOpenKey;
 @property (weak) IBOutlet NSButton *AutoCapsMacro;
+@property (weak) IBOutlet NSButton *MacroOnTab;
 @property (weak) IBOutlet NSButton *ShowIconOnDock;
 @property (weak) IBOutlet NSButton *CheckNewVersionOnStartup;
 @property (weak) IBOutlet NSButton *FixChromiumBrowser;

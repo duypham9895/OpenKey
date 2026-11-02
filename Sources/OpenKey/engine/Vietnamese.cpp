@@ -88,7 +88,7 @@ map<Uint16, vector<vector<Uint16>>> _vowel = {
             {KEY_A, KEY_N},
             {KEY_A},
             {KEY_A, KEY_C},
-            {KEY_A, KEY_C, KEY_H}, {KEY_A, KEY_K | END_CONSONANT_MASK},
+            {KEY_A, KEY_C, KEY_H}, {KEY_A, KEY_K | END_CONSONANT_MASK}, {KEY_A, KEY_K},
             
             {KEY_O},
             {KEY_U, KEY_U}
@@ -232,7 +232,7 @@ vector<vector<Uint16>> _consonantD = {
     {KEY_D, KEY_A, KEY_O},
     {KEY_D, KEY_A, KEY_P},
     {KEY_D, KEY_A, KEY_C},
-    {KEY_D, KEY_A, KEY_C, KEY_H}, {KEY_D, KEY_A, KEY_K | END_CONSONANT_MASK},
+    {KEY_D, KEY_A, KEY_C, KEY_H}, {KEY_D, KEY_A, KEY_K | END_CONSONANT_MASK}, {KEY_D, KEY_A, KEY_K},
     {KEY_D, KEY_A, KEY_N},
     {KEY_D, KEY_A, KEY_N, KEY_H}, {KEY_D, KEY_A, KEY_H | END_CONSONANT_MASK},
     {KEY_D, KEY_A, KEY_N, KEY_G}, {KEY_D, KEY_A, KEY_G | END_CONSONANT_MASK},
@@ -256,7 +256,7 @@ map<Uint16, vector<vector<Uint16>>> _vowelForMark = {
             {KEY_A, KEY_C},
             {KEY_A, KEY_I},
             {KEY_A, KEY_O},
-            {KEY_A, KEY_C, KEY_H}, {KEY_A, KEY_K | END_CONSONANT_MASK},
+            {KEY_A, KEY_C, KEY_H}, {KEY_A, KEY_K | END_CONSONANT_MASK}, {KEY_A, KEY_K},
         }
     }, {
         KEY_O, {
@@ -277,7 +277,7 @@ map<Uint16, vector<vector<Uint16>>> _vowelForMark = {
         KEY_E, {
             {KEY_E, KEY_N, KEY_H}, {KEY_E, KEY_H | END_CONSONANT_MASK},
             {KEY_E, KEY_N, KEY_G}, {KEY_E, KEY_G | END_CONSONANT_MASK},
-            {KEY_E, KEY_C, KEY_H}, {KEY_E, KEY_K | END_CONSONANT_MASK},
+            {KEY_E, KEY_C, KEY_H}, {KEY_E, KEY_K | END_CONSONANT_MASK}, {KEY_E, KEY_K},
             {KEY_E, KEY_C},
             {KEY_E, KEY_T},
             {KEY_E, KEY_Y},
@@ -291,7 +291,7 @@ map<Uint16, vector<vector<Uint16>>> _vowelForMark = {
     }, {
         KEY_I, {
             {KEY_I, KEY_N, KEY_H}, {KEY_I, KEY_H | END_CONSONANT_MASK},
-            {KEY_I, KEY_C, KEY_H}, {KEY_I, KEY_K | END_CONSONANT_MASK},
+            {KEY_I, KEY_C, KEY_H}, {KEY_I, KEY_K | END_CONSONANT_MASK}, {KEY_I, KEY_K},
             {KEY_I, KEY_N},
             {KEY_I, KEY_T},
             {KEY_I, KEY_U},
@@ -306,6 +306,7 @@ map<Uint16, vector<vector<Uint16>>> _vowelForMark = {
     }, {
         KEY_U, {
             { KEY_U, KEY_N, KEY_G}, {KEY_U, KEY_G | END_CONSONANT_MASK},
+            { KEY_U, KEY_K},
             { KEY_U, KEY_I},
             { KEY_U, KEY_O},
             { KEY_U, KEY_Y},

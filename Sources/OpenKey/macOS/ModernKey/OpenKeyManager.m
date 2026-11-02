@@ -46,9 +46,7 @@ static CFRunLoopSourceRef runLoopSource;
                  (1 << kCGEventKeyUp) |
                  (1 << kCGEventFlagsChanged) |
                  (1 << kCGEventLeftMouseDown) |
-                 (1 << kCGEventRightMouseDown) |
-                 (1 << kCGEventLeftMouseDragged) |
-                 (1 << kCGEventRightMouseDragged));
+                 (1 << kCGEventRightMouseDown)); //a drag always follows a mouse down, which already starts a new word
     
     eventTap = CGEventTapCreate(kCGSessionEventTap,
                                 kCGHeadInsertEventTap,
